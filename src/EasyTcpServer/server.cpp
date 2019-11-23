@@ -8,13 +8,61 @@
 #pragma comment(lib, "ws2_32.lib")
 #else
 //linux and osx
+#define INVALID_SOCKET  (SOCKET)(~0)
+#define SOCKET_ERROR            (-1)
+typedef int SOCKET
 #endif // _WIN32
 
 #include <stdio.h>
-
+#include <vector>
 #include "NetMsg.h"
 
+std::vector<SOCKET> g_clients;
 
+int processor(SOCKET cSock)
+{
+	DataHeader dh = {};
+	int nLen = recv(cSock, (char*)&dh, sizeof(DataHeader), 0);
+	if (nLen <= 0)
+	{
+		printf("nLen=%d 客户端<sock=%d>也退出，任务结束.\n", nLen, cSock);
+		return -1;
+	}
+
+	switch (dh.cmd)
+	{
+	case CMD_LOGIN:
+	{
+		Login login = {};
+		recv(cSock, (char*)&login + sizeof(DataHeader), sizeof(Login) - sizeof(DataHeader), 0);
+		printf("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s\n",
+			login.dataLength, login.userName, login.passWord);
+		//忽略登录消息的具体数据
+		LoginResult loginResult;
+		send(cSock, (const char*)&loginResult, sizeof(LoginResult), 0);
+	}
+	break;
+	case CMD_LOGINOUT:
+	{
+		Logout logout = {};
+		recv(cSock, (char*)&logout + sizeof(DataHeader), sizeof(Logout) - sizeof(DataHeader), 0);
+		printf("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s\n",
+			logout.dataLength, logout.userName);
+		//忽略登出消息的具体数据
+		LogoutResult loginoutResult;
+		send(cSock, (const char*)&loginoutResult, sizeof(LogoutResult), 0);
+	}
+	break;
+	default:
+	{
+		DataHeader dh;
+		send(cSock, (const char*)&dh, sizeof(DataHeader), 0);
+	}
+	break;
+	}
+
+	return 0;
+}
 
 int main(int argc, char** argv)
 {
@@ -48,62 +96,80 @@ int main(int argc, char** argv)
 		printf("监听网络端口成功.\n");
 	}
 
-	//接受新客户端连接
-	sockaddr_in _cAddr = {};
-	int _cAddrLen = sizeof(sockaddr_in);
-	SOCKET _cSock = accept(_sock, (sockaddr*)&_cAddr, &_cAddrLen);
-	if (INVALID_SOCKET == _cSock)
-	{
-		printf("接受到无效客户端SOCKET\n");
-		return -1;
-	}
-
-	printf("接收到新客户端<sock:%d>: IP = %s\n", (int)_cSock, inet_ntoa(_cAddr.sin_addr));
-
 	while (true)
 	{
-		DataHeader dh = {};
-		int nLen = recv(_cSock, (char*)&dh, sizeof(DataHeader), 0);
-		if (nLen <= 0)
+		//nfds 当前 socket 最大值+1（兼容贝克利套接字）. 在 windows 里面可以设置为 0.
+		fd_set fdRead;
+		fd_set fdWrite;
+		fd_set fdExcept;
+
+		FD_ZERO(&fdRead);
+		FD_ZERO(&fdWrite);
+		FD_ZERO(&fdExcept);
+		//把服务器 socket 加入监听
+		FD_SET(_sock, &fdRead);
+		FD_SET(_sock, &fdWrite);
+		FD_SET(_sock, &fdExcept);
+
+		//把全局客户端数据加入可读监听部分
+		for (int n = 0; n < g_clients.size(); n++)
 		{
-			printf("nLen=%d 客户端也退出，任务结束.\n", nLen);
+			FD_SET(g_clients[n], &fdRead);
+		}
+		/*
+		NULL:一直阻塞
+		*/
+		int ret = select(_sock + 1, &fdRead, &fdWrite, &fdExcept, NULL);
+		if (SOCKET_ERROR == ret)
+		{
+			printf("select error.\n");
 			break;
 		}
+		else if (0 == ret) {
+			printf("select timeout.\n");
+			continue;
+		}
+		else {
+			//处理服务器绑定的 socket
+			if (FD_ISSET(_sock, &fdRead))
+			{
+				FD_CLR(_sock, &fdRead);
+				//接受新客户端连接
+				sockaddr_in _cAddr = {};
+				int _cAddrLen = sizeof(sockaddr_in);
+				SOCKET cSock = accept(_sock, (sockaddr*)&_cAddr, &_cAddrLen);
+				if (INVALID_SOCKET == cSock)
+				{
+					printf("接受到无效客户端SOCKET\n");
+					return -1;
+				}
+				//把新客户端 socket 添加到全局数据里面
+				g_clients.push_back(cSock);
+				printf("接收到新客户端<sock:%d>: IP = %s\n", (int)cSock, inet_ntoa(_cAddr.sin_addr));
+			}
+		}
 
-		switch (dh.cmd)
+		//处理所有的客户端消息
+		for (unsigned int n = 0; n < fdRead.fd_count; n++)
 		{
-		case CMD_LOGIN:
-		{
-			Login login = {};
-			recv(_cSock, (char*)&login+sizeof(DataHeader), sizeof(Login)-sizeof(DataHeader), 0);
-			printf("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s\n", 
-				login.dataLength, login.userName, login.passWord);
-			//忽略登录消息的具体数据
-			LoginResult loginResult;
-			send(_cSock, (const char*)&loginResult, sizeof(LoginResult), 0);
-		}
-		break;
-		case CMD_LOGINOUT:
-		{
-			Logout logout = {};
-			recv(_cSock, (char*)&logout + sizeof(DataHeader), sizeof(Logout)-sizeof(DataHeader), 0);
-			printf("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s\n",
-				logout.dataLength, logout.userName);
-			//忽略登出消息的具体数据
-			LogoutResult loginoutResult;
-			send(_cSock, (const char*)&loginoutResult, sizeof(LogoutResult), 0);
-		}
-		break;
-		default:
-		{
-			DataHeader dh;
-			send(_cSock, (const char*)&dh, sizeof(DataHeader), 0);
-		}
-		break;
+			if (-1 == processor(fdRead.fd_array[n]))
+			{
+				//处理消息出现错误，在全局客户端数据里面删除它.
+				auto iter = std::find(g_clients.begin(), g_clients.end(), fdRead.fd_array[n]);
+				if (iter != g_clients.end())
+				{
+					g_clients.erase(iter);
+				}
+			}
 		}
 	}
 
 	printf("任务结束.\n");
+	//关闭所有的客户端连接
+	for (int n = 0; n < g_clients.size(); n++)
+	{
+		closesocket(g_clients[n]);
+	}
 	//断开 socket 连接
 	closesocket(_sock);
 
