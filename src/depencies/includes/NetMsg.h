@@ -7,6 +7,7 @@ enum CMD
 	CMD_LOGIN_RESULT,
 	CMD_LOGINOUT,
 	CMD_LOGINOUT_RESULT,
+	CMD_NEW_USER_JOIN,
 	CMD_ERROR,
 };
 
@@ -64,6 +65,17 @@ struct LogoutResult : public DataHeader
 		this->result = 0;
 	}
 	int result;
+};
+
+struct NewUserJoin : public DataHeader
+{
+	NewUserJoin()
+	{
+		this->dataLength = sizeof(NewUserJoin);
+		this->cmd = CMD_NEW_USER_JOIN;
+		this->sock = INVALID_SOCKET;
+	}
+	int sock;
 };
 
 #endif // _NET_MSG_H_
