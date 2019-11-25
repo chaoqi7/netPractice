@@ -8,9 +8,11 @@
 #pragma comment(lib, "ws2_32.lib")
 #else
 //linux and osx
+#include <unistd.h>
+#include <arpa/inet.h>
 #define INVALID_SOCKET  (SOCKET)(~0)
 #define SOCKET_ERROR            (-1)
-typedef int SOCKET
+#define SOCKET int
 #endif // _WIN32
 
 #include <stdio.h>
@@ -26,7 +28,7 @@ int processor(SOCKET cSock)
 	int nLen = recv(cSock, msgBuf, sizeof(DataHeader), 0);
 	if (nLen <= 0)
 	{
-		printf("nLen=%d <sock=%d>与服务器断开连接，任务结束.\n", nLen, cSock);
+		printf("nLen=%d <sock=%d>与服务器断开连接，任务结束.\n", nLen, (int)cSock);
 		return -1;
 	}
 
@@ -60,6 +62,8 @@ int processor(SOCKET cSock)
 	default:
 		break;
 	}
+
+	return 0;
 }
 
 void cmdThread(SOCKET sock)
@@ -93,9 +97,11 @@ void cmdThread(SOCKET sock)
 
 int main(int argc, char** argv)
 {
+#ifdef _WIN32
 	WORD ver = MAKEWORD(2, 2);
 	WSADATA dat = {};
 	WSAStartup(ver, &dat);
+#endif
 
 	SOCKET _sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (INVALID_SOCKET == _sock)
@@ -110,7 +116,11 @@ int main(int argc, char** argv)
 	sockaddr_in _sin = {};
 	_sin.sin_family = AF_INET;
 	_sin.sin_port = htons(4567);
-	_sin.sin_addr.S_un.S_addr = inet_addr("127.0.0.1");
+#ifdef _WIN32
+	_sin.sin_addr.S_un.S_addr = inet_addr("192.168.3.8");
+#else
+	_sin.sin_addr.s_addr = inet_addr("192.168.3.248");
+#endif
 	int ret = connect(_sock, (sockaddr*)&_sin, sizeof(sockaddr_in));
 	if (SOCKET_ERROR == ret)
 	{
@@ -121,8 +131,8 @@ int main(int argc, char** argv)
 		printf("连接服务器成功.\n");
 	}
 
-	std::thread cmdThread(cmdThread, _sock);
-	cmdThread.detach();
+	std::thread t1(cmdThread, _sock);
+	t1.detach();
 
 	while (g_bRun)
 	{
@@ -130,7 +140,7 @@ int main(int argc, char** argv)
 		FD_ZERO(&fdReads);
 		FD_SET(_sock, &fdReads);
 		timeval t = { 1, 0 };
-		int ret = select(_sock, &fdReads, nullptr, nullptr, &t);
+		int ret = select(_sock + 1, &fdReads, nullptr, nullptr, &t);
 		if (ret == SOCKET_ERROR)
 		{
 			printf("select error.\n");
@@ -146,17 +156,20 @@ int main(int argc, char** argv)
 			FD_CLR(_sock, &fdReads);
 			if (-1 == processor(_sock))
 			{
-				printf("select processor error.\n");
+				printf("与服务器断开连接.\n");
 				break;
 			}
 		}
 	}
 
 	printf("客户端也退出.\n");
-
+#ifdef _WIN32
 	closesocket(_sock);
 	
 	WSACleanup();
+#else
+	close(_sock);
+#endif
 
 	getchar();
 

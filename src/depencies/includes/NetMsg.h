@@ -73,7 +73,7 @@ struct NewUserJoin : public DataHeader
 	{
 		this->dataLength = sizeof(NewUserJoin);
 		this->cmd = CMD_NEW_USER_JOIN;
-		this->sock = INVALID_SOCKET;
+		this->sock = 0;
 	}
 	int sock;
 };
