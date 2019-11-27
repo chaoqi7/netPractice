@@ -1,6 +1,10 @@
 ﻿#ifndef _NET_MSG_H_
 #define _NET_MSG_H_
 
+#ifndef RECV_BUF_SIZE
+#define RECV_BUF_SIZE 10240
+#endif // RECV_BUF_SIZE
+
 enum CMD
 {
 	CMD_LOGIN,
@@ -43,6 +47,7 @@ struct LoginResult : public DataHeader
 		this->result = 0;
 	}
 	int result;
+	char data[1024];
 };
 
 //登出相关

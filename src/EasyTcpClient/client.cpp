@@ -41,9 +41,15 @@ int main(int argc, char** argv)
 	std::thread t1(cmdThread, &client);
 	t1.detach();
 
+	Login login = {};
+	strcpy(login.userName, "chaoqi");
+	strcpy(login.passWord, "chaoqimima");
+	//pClient->SendData(&login);
+
 	while (client.IsRun())
 	{
 		client.OnRun();
+		client.SendData(&login);
 	}
 
 	printf("客户端也退出.\n");

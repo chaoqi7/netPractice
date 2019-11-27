@@ -21,7 +21,6 @@
 
 #include "NetMsg.h"
 
-
 class EasyTcpClient
 {
 public:
@@ -48,6 +47,12 @@ private:
 	virtual void OnNetMsg(DataHeader* pHeader);
 private:
 	SOCKET _sock;
+	//接收缓冲区大小（每次从socket缓冲区读取的最大数据）
+	char _szRecvBuf[RECV_BUF_SIZE] = {};
+	//消息缓冲区
+	char _szMsgBuf[RECV_BUF_SIZE * 10] = {};
+	//消息缓冲区消息的长度
+	int _lastMsgPos = 0;
 };
 
 EasyTcpClient::EasyTcpClient()
@@ -176,18 +181,46 @@ inline int EasyTcpClient::SendData(DataHeader * pHeader)
 
 inline int EasyTcpClient::RecvData()
 {
-	char msgBuf[1024] = {};
-	int nLen = recv(_sock, msgBuf, sizeof(DataHeader), 0);
+	//一次性从 socket 缓冲区里面读取最大的数据
+	int nLen = recv(_sock, _szRecvBuf, RECV_BUF_SIZE, 0);
 	if (nLen <= 0)
 	{
 		printf("<sock=%d>与服务器断开连接，任务结束.\n", (int)_sock);
 		return -1;
 	}
 
-	DataHeader* pHeader = (DataHeader*)msgBuf;
-	recv(_sock, msgBuf + sizeof(DataHeader), pHeader->dataLength - sizeof(DataHeader), 0);
-
-	OnNetMsg(pHeader);
+	//把接收缓冲区的数据复制到消息缓冲区
+	memcpy(_szMsgBuf + _lastMsgPos, _szRecvBuf, nLen);
+	//当前未处理的消息长度 + nLen
+	_lastMsgPos += nLen;
+	//是否有一个消息头长度
+	while (_lastMsgPos >= sizeof(DataHeader))
+	{
+		DataHeader* pHeader = (DataHeader*)_szMsgBuf;
+		//是否有一条真正的消息长度
+		if (_lastMsgPos >= pHeader->dataLength)
+		{
+			//剩余未处理的消息长度
+			unsigned int nLeftSize = _lastMsgPos - pHeader->dataLength;
+			//处理消息
+			OnNetMsg(pHeader);
+			if (nLeftSize > 0)
+			{
+				//未处理的消息前移
+				memcpy(_szMsgBuf, _szMsgBuf + pHeader->dataLength, nLeftSize);
+				//更新未处理消息长度
+				_lastMsgPos = nLeftSize;
+			}
+			else {
+				_lastMsgPos = 0;
+			}
+			
+		}
+		else {
+			//不够一条消息
+			break;
+		}
+	}
 
 	return 0;
 }
@@ -199,25 +232,31 @@ inline void EasyTcpClient::OnNetMsg(DataHeader* pHeader)
 	case CMD_LOGIN_RESULT:
 	{		
 		LoginResult* pLoginResult = (LoginResult*)pHeader;
-		printf("<sockt=%d>收到服务器返回消息 CMD_LOGIN_RESULT, Result:%d, len:%d\n",
-			(int)_sock, pLoginResult->result, pLoginResult->dataLength);
+		//printf("<sockt=%d>收到服务器返回消息 CMD_LOGIN_RESULT, Result:%d, len:%d\n",
+		//	(int)_sock, pLoginResult->result, pLoginResult->dataLength);
 	}
 	break;
 	case CMD_LOGINOUT_RESULT:
 	{
 		LogoutResult* pLogoutResult = (LogoutResult*)pHeader;
-		printf("<sockt=%d>收到服务器返回消息 CMD_LOGINOUT_RESULT, Result:%d, len:%d\n",
-			(int)_sock, pLogoutResult->result, pLogoutResult->dataLength);
+		//printf("<sockt=%d>收到服务器返回消息 CMD_LOGINOUT_RESULT, Result:%d, len:%d\n",
+		//	(int)_sock, pLogoutResult->result, pLogoutResult->dataLength);
 	}
 	break;
 	case CMD_NEW_USER_JOIN:
 	{
 		NewUserJoin* pUserJoin = (NewUserJoin*)pHeader;
-		printf("<sockt=%d>收到服务器返回消息 CMD_NEW_USER_JOIN, sock:%d, len:%d\n",
-			(int)_sock, pUserJoin->sock, pUserJoin->dataLength);
+		//printf("<sockt=%d>收到服务器返回消息 CMD_NEW_USER_JOIN, sock:%d, len:%d\n",
+		//	(int)_sock, pUserJoin->sock, pUserJoin->dataLength);
+	}
+	break;
+	case CMD_ERROR:
+	{
+		printf("CMD_ERROR...\n");
 	}
 	break;
 	default:
+		printf("收到未定义消息.\n");
 		break;
 	}
 }

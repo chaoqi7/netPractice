@@ -21,6 +21,51 @@
 #include <vector>
 #include "NetMsg.h"
 
+class ClientSocket
+{
+public:
+	ClientSocket(SOCKET cSock);
+	~ClientSocket();
+	SOCKET SocketFd();
+	int GetLastMsgPos();
+	void SetLastMsgPos(int newPos);
+	char* MsgBuf();
+private:
+	SOCKET _cSock = INVALID_SOCKET;
+	char _szMsgBuf[RECV_BUF_SIZE * 10] = {};
+	int _lastMsgPos = 0;
+};
+
+ClientSocket::ClientSocket(SOCKET cSock)
+{
+	this->_cSock = cSock;
+}
+
+ClientSocket::~ClientSocket()
+{
+	_cSock = INVALID_SOCKET;
+}
+
+inline SOCKET ClientSocket::SocketFd()
+{
+	return _cSock;
+}
+
+inline int ClientSocket::GetLastMsgPos()
+{
+	return _lastMsgPos;
+}
+
+inline void ClientSocket::SetLastMsgPos(int newPos)
+{
+	_lastMsgPos = newPos;
+}
+
+inline char * ClientSocket::MsgBuf()
+{
+	return _szMsgBuf;
+}
+//////////////////////////////////////////////////////////////////////////
 class EasyTcpServer
 {
 public:
@@ -45,12 +90,12 @@ private:
 	//接收客户端连接
 	int Accept();
 	//接收数据
-	int RecvData(SOCKET cSock);
+	int RecvData(ClientSocket* pClient);
 	//处理消息
 	virtual void OnNetMsg(SOCKET cSock, DataHeader* pHeader);
 private:
 	SOCKET _sock;
-	std::vector<SOCKET> _clients;
+	std::vector<ClientSocket*> _clients;
 };
 
 EasyTcpServer::EasyTcpServer()
@@ -150,10 +195,10 @@ int EasyTcpServer::Accept()
 	{
 		NewUserJoin userJoin;
 		userJoin.sock = (int)cSock;
-		send(_clients[n], (const char*)&userJoin, sizeof(NewUserJoin), 0);
+		SendData(_clients[n]->SocketFd(), &userJoin);
 	}
 	//把新客户端 socket 添加到全局数据里面
-	_clients.push_back(cSock);
+	_clients.push_back(new ClientSocket(cSock));
 	printf("接收到新客户端<sock:%d>: IP = %s\n", (int)cSock, inet_ntoa(_cAddr.sin_addr));
 
 	return 0;
@@ -167,7 +212,8 @@ void EasyTcpServer::Close()
 #ifdef _WIN32
 		for (int n = 0; n < _clients.size(); n++)
 		{
-			closesocket(_clients[n]);
+			closesocket(_clients[n]->SocketFd());
+			delete _clients[n];
 		}
 		//断开 socket 连接
 		closesocket(_sock);
@@ -175,12 +221,14 @@ void EasyTcpServer::Close()
 #else
 		for (int n = 0; n < _clients.size(); n++)
 		{
-			close(_clients[n]);
+			close(_clients[n]->SocketFd());
+			delete _clients[n];
 		}
 		//断开 socket 连接
 		close(_sock);
 #endif
 		_sock = INVALID_SOCKET;
+		_clients.clear();
 	}
 }
 
@@ -207,7 +255,7 @@ void EasyTcpServer::SendData2All(DataHeader* pHeader)
 {
 	for (int n = 0; n < _clients.size(); n++)
 	{
-		SendData(_clients[n], pHeader);
+		SendData(_clients[n]->SocketFd(), pHeader);
 	}
 }
 
@@ -230,11 +278,13 @@ bool EasyTcpServer::OnRun()
 	//把全局客户端数据加入可读监听部分
 	for (int n = 0; n < _clients.size(); n++)
 	{
-		FD_SET(_clients[n], &fdRead);
-		if (maxSock < _clients[n])
+		FD_SET(_clients[n]->SocketFd(), &fdRead);
+#ifndef _WIN32
+		if (maxSock < _clients[n]->SocketFd())
 		{
-			maxSock = _clients[n];
+			maxSock = _clients[n]->SocketFd();
 		}
+#endif
 	}
 	/*
 	NULL:一直阻塞
@@ -261,16 +311,17 @@ bool EasyTcpServer::OnRun()
 	//处理所有的客户端消息
 	for (int n = 0; n < _clients.size(); n++)
 	{
-		if (FD_ISSET(_clients[n], &fdRead))
+		if (FD_ISSET(_clients[n]->SocketFd(), &fdRead))
 		{
-			FD_CLR(_clients[n], &fdRead);
+			FD_CLR(_clients[n]->SocketFd(), &fdRead);
 			if (-1 == RecvData(_clients[n]))
 			{
 #ifdef _WIN32
-				closesocket(_clients[n]);
+				closesocket(_clients[n]->SocketFd());
 #else
-				close(_clients[n]);
+				close(_clients[n]->SocketFd());
 #endif
+				delete _clients[n];
 				//处理消息出现错误，在全局客户端数据里面删除它.
 				auto iter = _clients.begin() + n;
 				if (iter != _clients.end())
@@ -280,23 +331,49 @@ bool EasyTcpServer::OnRun()
 			}
 		}
 	}
+
 	return true;
 }
 
-int EasyTcpServer::RecvData(SOCKET cSock)
+int EasyTcpServer::RecvData(ClientSocket* pClient)
 {
-	char msgBuf[1024] = {};
-	int nLen = (int)recv(cSock, msgBuf, sizeof(DataHeader), 0);
+	char szRecvBuf[RECV_BUF_SIZE] = {};
+	int nLen = (int)recv(pClient->SocketFd(), szRecvBuf, RECV_BUF_SIZE, 0);
 	if (nLen <= 0)
 	{
-		printf("客户端<sock=%d>退出，任务结束.\n", (int)cSock);
+		printf("客户端<sock=%d>退出，任务结束.\n", (int)pClient->SocketFd());
 		return -1;
 	}
-	DataHeader* pHeader = (DataHeader*)msgBuf;
-
-	recv(cSock, msgBuf + sizeof(DataHeader), pHeader->dataLength - sizeof(DataHeader), 0);
-	
-	OnNetMsg(cSock, pHeader);
+	//把接收缓冲区的数据复制到消息缓冲区
+	memcpy(pClient->MsgBuf() + pClient->GetLastMsgPos(), szRecvBuf, nLen);
+	//当前未处理的消息长度 + nLen
+	pClient->SetLastMsgPos(pClient->GetLastMsgPos() + nLen);
+	//是否有一个消息头长度
+	while (pClient->GetLastMsgPos() >= sizeof(DataHeader))
+	{
+		DataHeader* pHeader = (DataHeader*)pClient->MsgBuf();
+		//是否有一条真正的消息长度
+		if (pClient->GetLastMsgPos() >= pHeader->dataLength)
+		{
+			//剩余未处理的消息长度
+			int nLeftMsgLen = pClient->GetLastMsgPos() - pHeader->dataLength;
+			//处理消息
+			OnNetMsg(pClient->SocketFd(), pHeader);
+			if (nLeftMsgLen > 0)
+			{
+				//未处理的消息前移
+				memcpy(pClient->MsgBuf(), pClient->MsgBuf() + pHeader->dataLength, nLeftMsgLen);
+				//更新未处理消息长度
+				pClient->SetLastMsgPos(nLeftMsgLen);
+			}
+			else {
+				pClient->SetLastMsgPos(0);
+			}			
+		}
+		else {
+			break;
+		}
+	}
 
 	return 0;
 }
@@ -308,8 +385,8 @@ void EasyTcpServer::OnNetMsg(SOCKET cSock, DataHeader * pHeader)
 	case CMD_LOGIN:
 	{		
 		Login* pLogin = (Login*)pHeader;
-		printf("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s\n",
-			pLogin->dataLength, pLogin->userName, pLogin->passWord);
+		//printf("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s\n",
+		//	pLogin->dataLength, pLogin->userName, pLogin->passWord);
 		//忽略登录消息的具体数据
 		LoginResult loginResult;
 		SendData(cSock, &loginResult);
@@ -318,8 +395,8 @@ void EasyTcpServer::OnNetMsg(SOCKET cSock, DataHeader * pHeader)
 	case CMD_LOGINOUT:
 	{
 		Logout* pLogout = (Logout*)pHeader;
-		printf("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s\n",
-			pLogout->dataLength, pLogout->userName);
+		//printf("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s\n",
+		//	pLogout->dataLength, pLogout->userName);
 		//忽略登出消息的具体数据
 		LogoutResult loginoutResult;
 		SendData(cSock, &loginoutResult);
@@ -327,8 +404,9 @@ void EasyTcpServer::OnNetMsg(SOCKET cSock, DataHeader * pHeader)
 	break;
 	default:
 	{
+		printf("收到未定义消息.\n");
 		DataHeader dh;
-		send(cSock, (const char*)&dh, sizeof(DataHeader), 0);
+		SendData(cSock, &dh);
 	}
 	break;
 	}
