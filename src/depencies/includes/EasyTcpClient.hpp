@@ -84,7 +84,7 @@ inline void EasyTcpClient::InitSocket()
 		printf("create socket fail.\n");
 	}
 	else {
-		printf("创建 socket=%d 成功.\n", (int)_sock);
+		//printf("创建 socket=%d 成功.\n", (int)_sock);
 	}
 }
 
@@ -110,7 +110,7 @@ inline int EasyTcpClient::Connect(const char * ip, unsigned short port)
 		return -1;
 	}
 	else {
-		printf("<sockt=%d>连接服务器<%s:%d>成功.\n", (int)_sock, ip, port);
+		//printf("<sockt=%d>连接服务器<%s:%d>成功.\n", (int)_sock, ip, port);
 	}
 	return ret;
 }

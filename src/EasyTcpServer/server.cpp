@@ -1,8 +1,8 @@
 ﻿
 #include "EasyTcpServer.hpp"
 #include <thread>
-
-void cmdThread(EasyTcpServer* pServer)
+bool g_bRun = true;
+void cmdThread()
 {
 	while (true)
 	{
@@ -11,7 +11,7 @@ void cmdThread(EasyTcpServer* pServer)
 		if (0 == strcmp(cmdBuf, "exit"))
 		{
 			printf("cmdThread need exit.\n");
-			pServer->Close();
+			g_bRun = false;
 			break;
 		}
 		else {
@@ -24,12 +24,12 @@ int main(int argc, char** argv)
 {
 	EasyTcpServer server;
 	server.Bind(nullptr, 4567);
-	server.Listen(64);
+	server.Listen(5);
 
-	std::thread t1(cmdThread, &server);
+	std::thread t1(cmdThread);
 	t1.detach();
 
-	while (server.IsRun())
+	while (g_bRun)
 	{
 		server.OnRun();
 	}

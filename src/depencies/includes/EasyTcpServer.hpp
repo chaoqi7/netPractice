@@ -3,6 +3,7 @@
 
 #ifdef _WIN32
 //windows
+#define FD_SETSIZE      4024
 #define WIN32_LEAN_AND_MEAN
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #include <windows.h>
@@ -20,6 +21,7 @@
 #include <stdio.h>
 #include <vector>
 #include "NetMsg.h"
+#include "CELLTimeStamp.hpp"
 
 class ClientSocket
 {
@@ -96,6 +98,8 @@ private:
 private:
 	SOCKET _sock;
 	std::vector<ClientSocket*> _clients;
+	CELLTimeStamp _tTime;
+	int _recvCount = 0;
 };
 
 EasyTcpServer::EasyTcpServer()
@@ -191,15 +195,12 @@ int EasyTcpServer::Accept()
 		return -1;
 	}
 	//把新客户端登录消息广播给所有的客户端
-	for (int n = 0; n < _clients.size(); n++)
-	{
-		NewUserJoin userJoin;
-		userJoin.sock = (int)cSock;
-		SendData(_clients[n]->SocketFd(), &userJoin);
-	}
+	//NewUserJoin userJoin;
+	//userJoin.sock = (int)cSock;
+	//SendData2All(&userJoin);
 	//把新客户端 socket 添加到全局数据里面
 	_clients.push_back(new ClientSocket(cSock));
-	printf("接收到新客户端<sock:%d>: IP = %s\n", (int)cSock, inet_ntoa(_cAddr.sin_addr));
+	//printf("Total<%d>接收到新客户端<sock:%d>: IP = %s\n", (int)_clients.size(), (int)cSock, inet_ntoa(_cAddr.sin_addr));
 
 	return 0;
 }
@@ -380,6 +381,15 @@ int EasyTcpServer::RecvData(ClientSocket* pClient)
 
 void EasyTcpServer::OnNetMsg(SOCKET cSock, DataHeader * pHeader)
 {
+	_recvCount++;
+	auto t = _tTime.getTimeInSeconds();
+	if (t >= 1.0)
+	{
+		printf("time<%lf>, clients<%d>, recvCount<%d>\n", t, _clients.size(), _recvCount);
+		_tTime.update();
+		_recvCount = 0;
+	}
+
 	switch (pHeader->cmd)
 	{
 	case CMD_LOGIN:
@@ -388,8 +398,8 @@ void EasyTcpServer::OnNetMsg(SOCKET cSock, DataHeader * pHeader)
 		//printf("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s\n",
 		//	pLogin->dataLength, pLogin->userName, pLogin->passWord);
 		//忽略登录消息的具体数据
-		LoginResult loginResult;
-		SendData(cSock, &loginResult);
+		//LoginResult loginResult;
+		//SendData(cSock, &loginResult);
 	}
 	break;
 	case CMD_LOGINOUT:
@@ -398,8 +408,8 @@ void EasyTcpServer::OnNetMsg(SOCKET cSock, DataHeader * pHeader)
 		//printf("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s\n",
 		//	pLogout->dataLength, pLogout->userName);
 		//忽略登出消息的具体数据
-		LogoutResult loginoutResult;
-		SendData(cSock, &loginoutResult);
+		//LogoutResult loginoutResult;
+		//SendData(cSock, &loginoutResult);
 	}
 	break;
 	default:

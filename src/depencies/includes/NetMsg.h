@@ -23,7 +23,7 @@ struct DataHeader
 		this->cmd = CMD_ERROR;
 	}
 	short dataLength;
-	short cmd;
+	short cmd;	
 };
 
 //登录相关
@@ -36,6 +36,7 @@ struct Login : public DataHeader
 	}
 	char userName[32];
 	char passWord[32];
+	char data[956];
 };
 
 struct LoginResult : public DataHeader
@@ -47,7 +48,7 @@ struct LoginResult : public DataHeader
 		this->result = 0;
 	}
 	int result;
-	char data[1024];
+	char data[1016];
 };
 
 //登出相关
