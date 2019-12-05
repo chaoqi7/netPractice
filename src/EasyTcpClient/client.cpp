@@ -4,8 +4,11 @@
 #include "NetMsg.h"
 #include "EasyTcpClient.hpp"
 
-const int g_CCount = 2000;
+const int g_cCount = 4000;
+const int g_tCount = 8;
 bool g_bRun = true;
+
+
 void cmdThread()
 {
 	while (true)
@@ -18,49 +21,31 @@ void cmdThread()
 			g_bRun = false;
 			break;
 		}
-		else if (0 == strcmp(cmdBuf, "login")) {
-// 			Login login = {};
-// 			strcpy(login.userName, "chaoqi");
-// 			strcpy(login.passWord, "chaoqimima");
-// 			pClient->SendData(&login);
-		}
-		else if (0 == strcmp(cmdBuf, "logout")) {
-// 			Logout logout = {};
-// 			strcpy(logout.userName, "chaoqi");
-// 			pClient->SendData(&logout);
-		}
 		else {
 			printf("unknown command, input again.\n");
 		}
 	}	
 }
 
-int main(int argc, char** argv)
+void sendThread(int id)
 {
-	EasyTcpClient* client[g_CCount];
-	for (int n = 0; n < g_CCount; n++)
+	EasyTcpClient* client[g_cCount];
+	int cNum = g_cCount / g_tCount;
+	int begin = (id - 1)*cNum;
+	int end = id * cNum;
+
+	printf("sendThread id=%d, begin=%d, end=%d\n", id, begin, end);
+
+	for (int n = begin; n < end; n++)
 	{
-		if (!g_bRun)
-		{
-			return 0;
-		}
 		client[n] = new EasyTcpClient();
-		//client[n]->Connect("192.168.3.248", 4567);
 	}
 
-	for (int n = 0; n < g_CCount; n++)
+	for (int n = begin; n < end; n++)
 	{
-		if (!g_bRun)
-		{
-			return 0;
-		}
-		//client[n] = new EasyTcpClient();
 		client[n]->Connect("192.168.3.248", 4567);
-		printf("Connect=%d\n", n);
+		//printf("Connect=%d\n", n);
 	}
-
-	std::thread t1(cmdThread);
-	t1.detach();
 
 	Login login = {};
 	strcpy(login.userName, "chaoqi");
@@ -69,19 +54,33 @@ int main(int argc, char** argv)
 
 	while (g_bRun)
 	{
-		for (int n = 0; n < g_CCount; n++)
+		for (int n = begin; n < end; n++)
 		{
 			client[n]->SendData(&login);
 			//client[n]->OnRun();			
 		}
 	}
 
-	printf("客户端也退出.\n");
-	for (int n = 0; n < g_CCount; n++)
+	for (int n = begin; n < end; n++)
 	{
 		client[n]->Close();
 	}
+}
 
+int main(int argc, char** argv)
+{
+	//UI 线程
+	std::thread t1(cmdThread);
+	t1.detach();
+
+	for (int n = 0; n < g_tCount; n++)
+	{
+		std::thread t(sendThread, n + 1);
+		t.detach();
+	}
+
+	getchar();
+	printf("exit the Main Thread.\n");
 	return 0;
 }
 

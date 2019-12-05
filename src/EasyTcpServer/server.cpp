@@ -24,7 +24,7 @@ int main(int argc, char** argv)
 {
 	EasyTcpServer server;
 	server.Bind(nullptr, 4567);
-	server.Listen(5);
+	server.Listen(128);
 
 	std::thread t1(cmdThread);
 	t1.detach();

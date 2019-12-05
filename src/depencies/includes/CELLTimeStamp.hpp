@@ -13,9 +13,12 @@ public:
 	~CELLTimeStamp();
 
 	void update();
-	double getTimeInSeconds();
-	double getTimeInMillSeconds();
-	long long getTimeInMicroSeconds();
+	//秒
+	double getElapseTimeInSeconds();
+	//毫秒
+	double getElapseTimeInMilliseconds();
+	//微秒
+	long long getElapseTimeInMicroSeconds();
 private:
 	time_point<high_resolution_clock> _begin;
 };
@@ -34,17 +37,17 @@ inline void CELLTimeStamp::update()
 	_begin = high_resolution_clock::now();
 }
 
-inline double CELLTimeStamp::getTimeInSeconds()
+inline double CELLTimeStamp::getElapseTimeInSeconds()
 {
-	return getTimeInMicroSeconds() * 0.000001;
+	return getElapseTimeInMicroSeconds() * 0.000001;
 }
 
-inline double CELLTimeStamp::getTimeInMillSeconds()
+inline double CELLTimeStamp::getElapseTimeInMilliseconds()
 {
-	return getTimeInMicroSeconds() * 0.001;
+	return getElapseTimeInMicroSeconds() * 0.001;
 }
 
-inline long long CELLTimeStamp::getTimeInMicroSeconds()
+inline long long CELLTimeStamp::getElapseTimeInMicroSeconds()
 {
 	return duration_cast<microseconds>(high_resolution_clock::now() - _begin).count();
 }
