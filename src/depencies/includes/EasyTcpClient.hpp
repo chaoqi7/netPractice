@@ -36,7 +36,7 @@ public:
 	bool IsRun();
 	//发送消息
 	int SendData(DataHeader* pHeader);
-
+	int SendData(const char* pData, const int iLen);
 
 private:
 	//初始化 socket
@@ -175,6 +175,15 @@ inline int EasyTcpClient::SendData(DataHeader * pHeader)
 	if (IsRun() && pHeader)
 	{
 		return send(_sock, (const char*)pHeader, pHeader->dataLength, 0);
+	}
+	return SOCKET_ERROR;
+}
+
+inline int EasyTcpClient::SendData(const char * pData, const int iLen)
+{
+	if (IsRun() && pData)
+	{
+		return send(_sock, pData, iLen, 0);
 	}
 	return SOCKET_ERROR;
 }

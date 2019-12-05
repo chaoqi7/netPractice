@@ -36,7 +36,7 @@ struct Login : public DataHeader
 	}
 	char userName[32];
 	char passWord[32];
-	char data[956];
+	char data[56];
 };
 
 struct LoginResult : public DataHeader
@@ -48,7 +48,7 @@ struct LoginResult : public DataHeader
 		this->result = 0;
 	}
 	int result;
-	char data[1016];
+	char data[96];
 };
 
 //登出相关

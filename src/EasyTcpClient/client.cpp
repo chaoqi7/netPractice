@@ -5,7 +5,7 @@
 #include "EasyTcpClient.hpp"
 
 const int g_cCount = 4000;
-const int g_tCount = 8;
+const int g_tCount = 4;
 bool g_bRun = true;
 
 
@@ -47,16 +47,20 @@ void sendThread(int id)
 		//printf("Connect=%d\n", n);
 	}
 
-	Login login = {};
-	strcpy(login.userName, "chaoqi");
-	strcpy(login.passWord, "chaoqimima");
+	Login login[10] = {};
+	for (int n = 0; n < 10; n++)
+	{
+		strcpy(login[n].userName, "chaoqi");
+		strcpy(login[n].passWord, "chaoqimima");
+	}
+
 	//pClient->SendData(&login);
 
 	while (g_bRun)
 	{
 		for (int n = begin; n < end; n++)
 		{
-			client[n]->SendData(&login);
+			client[n]->SendData((const char*)&login, sizeof(login));
 			//client[n]->OnRun();			
 		}
 	}

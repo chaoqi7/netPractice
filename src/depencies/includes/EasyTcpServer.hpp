@@ -22,10 +22,11 @@
 #include <vector>
 #include <thread>
 #include <mutex>
+#include <atomic>
 #include "NetMsg.h"
 #include "CELLTimeStamp.hpp"
 
-#define CELL_THREAD_COUNT 8
+#define CELL_THREAD_COUNT 4
 
 class ClientSocket
 {
@@ -90,10 +91,17 @@ inline void ClientSocket::Close()
 	}	
 }
 //////////////////////////////////////////////////////////////////////////
+class INetEvent
+{
+public:
+	virtual void OnUserLeave(ClientSocket* pClient) = 0;
+	virtual void OnNetMsg() = 0;
+};
+//////////////////////////////////////////////////////////////////////////
 class CellServer
 {
 public:
-	CellServer(SOCKET sock = INVALID_SOCKET);
+	CellServer(SOCKET sock, INetEvent* netEvent);
 	~CellServer();
 	void AddClient(ClientSocket* pClient);
 	size_t GetClientCount();
@@ -111,7 +119,8 @@ private:
 	//处理消息
 	virtual void OnNetMsg(SOCKET cSock, DataHeader* pHeader);
 private:
-	SOCKET _sock;
+	SOCKET _sock = INVALID_SOCKET;
+	INetEvent* _pNetEvent = nullptr;
 	//当前正在处理的客户端队列
 	std::vector<ClientSocket*> _clients;
 	//待处理队列
@@ -119,9 +128,10 @@ private:
 	std::mutex _mutex;
 };
 
-CellServer::CellServer(SOCKET sock/* = INVALID_SOCKET*/)
+inline CellServer::CellServer(SOCKET sock, INetEvent * netEvent)
 {
 	_sock = sock;
+	_pNetEvent = netEvent;
 }
 
 CellServer::~CellServer()
@@ -170,12 +180,7 @@ inline void CellServer::OnRun()
 		}
 
 		fd_set fdRead;
-		fd_set fdWrite;
-		fd_set fdExcept;
-
 		FD_ZERO(&fdRead);
-		FD_ZERO(&fdWrite);
-		FD_ZERO(&fdExcept);
 		//nfds 当前 socket 最大值+1（兼容贝克利套接字）. 在 windows 里面可以设置为 0.
 		SOCKET maxSock = _clients[0]->GetSocketfd();
 		//把全局客户端数据加入可读监听部分
@@ -193,8 +198,8 @@ inline void CellServer::OnRun()
 		NULL:一直阻塞
 		timeval 只能精确到秒
 		*/
-		timeval t = { 1, 0 };
-		int ret = select((int)maxSock + 1, &fdRead, &fdWrite, &fdExcept, &t);
+		timeval t = { 0, 30 };
+		int ret = select((int)maxSock + 1, &fdRead, nullptr, nullptr, &t);
 		if (SOCKET_ERROR == ret)
 		{
 			printf("cellServer select error.\n");
@@ -219,6 +224,10 @@ inline void CellServer::OnRun()
 					auto iter = _clients.begin() + n;
 					if (iter != _clients.end())
 					{
+						if (_pNetEvent)
+						{
+							_pNetEvent->OnUserLeave(_clients[n]);
+						}
 						delete _clients[n];
 						_clients.erase(iter);
 					}
@@ -318,6 +327,11 @@ int CellServer::RecvData(ClientSocket* pClient)
 
 void CellServer::OnNetMsg(SOCKET cSock, DataHeader * pHeader)
 {
+	if (_pNetEvent)
+	{
+		_pNetEvent->OnNetMsg();
+	}
+
 	switch (pHeader->cmd)
 	{
 	case CMD_LOGIN:
@@ -350,7 +364,7 @@ void CellServer::OnNetMsg(SOCKET cSock, DataHeader * pHeader)
 	}
 }
 //////////////////////////////////////////////////////////////////////////
-class EasyTcpServer
+class EasyTcpServer : public INetEvent
 {
 public:
 	EasyTcpServer();
@@ -374,10 +388,24 @@ private:
 	int Accept();
 	//添加新客户端到子线程
 	void AddClient2CellServer(ClientSocket* pClient);
+	void time4msg();
+
+	void OnUserLeave(ClientSocket* pClient) override
+	{
+		_clientCount--;
+	}
+
+	void OnNetMsg() override
+	{
+		_msgCount++;
+	}
 private:
 	SOCKET _sock;
 	//子线程队列
 	CellServer* _cellServer[CELL_THREAD_COUNT];
+	CELLTimeStamp _tTime;
+	int _msgCount = 0;
+	int _clientCount = 0;
 };
 
 EasyTcpServer::EasyTcpServer()
@@ -504,25 +532,20 @@ bool EasyTcpServer::IsRun()
 
 bool EasyTcpServer::OnRun()
 {
-	//nfds 当前 socket 最大值+1（兼容贝克利套接字）. 在 windows 里面可以设置为 0.
-	SOCKET maxSock = _sock;
+	time4msg();
 	fd_set fdRead;
 	fd_set fdWrite;
 	fd_set fdExcept;
 
 	FD_ZERO(&fdRead);
-	FD_ZERO(&fdWrite);
-	FD_ZERO(&fdExcept);
 	//把服务器 socket 加入监听
 	FD_SET(_sock, &fdRead);
-	FD_SET(_sock, &fdWrite);
-	FD_SET(_sock, &fdExcept);
 	/*
 	NULL:一直阻塞
 	timeval 只能精确到秒
 	*/
-	timeval t = { 1, 0 };
-	int ret = select((int)_sock + 1, &fdRead, &fdWrite, &fdExcept, &t);
+	timeval t = { 0, 10 };
+	int ret = select((int)_sock + 1, &fdRead, nullptr, nullptr, &t);
 	if (SOCKET_ERROR == ret)
 	{
 		printf("select error.\n");
@@ -546,13 +569,14 @@ inline void EasyTcpServer::Start()
 {
 	for (int n = 0; n < CELL_THREAD_COUNT; n++)
 	{
-		_cellServer[n] = new CellServer(_sock);
+		_cellServer[n] = new CellServer(_sock, this);
 		_cellServer[n]->Start();
 	}
 }
 
 inline void EasyTcpServer::AddClient2CellServer(ClientSocket * pClient)
 {
+	_clientCount++;
 	//找出最小客户端数据，添加进去
 	CellServer* pMinServer = _cellServer[0];
 	for (int n = 1; n < CELL_THREAD_COUNT; n++)
@@ -565,5 +589,15 @@ inline void EasyTcpServer::AddClient2CellServer(ClientSocket * pClient)
 	pMinServer->AddClient(pClient);
 }
 
+inline void EasyTcpServer::time4msg()
+{
+	auto t = _tTime.getElapseTimeInSeconds();
+	if (t > 1.0)
+	{
+		printf("time<%lf>....clients<%d>, msg<%d>\n", t, _clientCount, _msgCount);
+		_tTime.update();
+		_msgCount = 0;
+	}
+}
 
 #endif // !_EASY_TCP_SERVER_HPP_
