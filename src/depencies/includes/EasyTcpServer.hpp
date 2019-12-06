@@ -26,8 +26,6 @@
 #include "NetMsg.h"
 #include "CELLTimeStamp.hpp"
 
-#define CELL_THREAD_COUNT 4
-
 class ClientSocket
 {
 public:
@@ -43,9 +41,11 @@ public:
 	char* MsgBuf();
 	//关闭当前客户端的 socket
 	void Close();
+	//发送消息
+	int SendData(DataHeader* pHeader);
 private:
 	SOCKET _cSock = INVALID_SOCKET;
-	char _szMsgBuf[RECV_BUF_SIZE * 10] = {};
+	char _szMsgBuf[RECV_BUF_SIZE * 5] = {};
 	int _lastMsgPos = 0;
 };
 
@@ -90,12 +90,29 @@ inline void ClientSocket::Close()
 		_cSock = INVALID_SOCKET;
 	}	
 }
+inline int ClientSocket::SendData(DataHeader * pHeader)
+{
+	int ret = SOCKET_ERROR;
+	if (pHeader)
+	{
+		ret = send(_cSock, (const char*)pHeader, pHeader->dataLength, 0);
+		if (SOCKET_ERROR == ret)
+		{
+			printf("sock=%d SendData error.\n", (int)_cSock);
+		}
+	}
+	return ret;
+}
 //////////////////////////////////////////////////////////////////////////
 class INetEvent
 {
 public:
-	virtual void OnUserLeave(ClientSocket* pClient) = 0;
-	virtual void OnNetMsg() = 0;
+	//网络断开
+	virtual void OnNetLeave(ClientSocket* pClient) = 0;
+	//网络建立
+	virtual void OnNetJoin(ClientSocket* pClient) = 0;
+	//网络消息
+	virtual void OnNetMsg(ClientSocket* pClient, DataHeader* pHeader) = 0;
 };
 //////////////////////////////////////////////////////////////////////////
 class CellServer
@@ -111,13 +128,10 @@ private:
 	//是否运行
 	bool IsRun();
 	void Close();
-	//发送消息
-	int SendData(SOCKET cSock, DataHeader* pHeader);
-	void SendData2All(DataHeader* pHeader);
 	//接收数据
 	int RecvData(ClientSocket* pClient);
 	//处理消息
-	virtual void OnNetMsg(SOCKET cSock, DataHeader* pHeader);
+	virtual void OnNetMsg(ClientSocket* pClient, DataHeader* pHeader);
 private:
 	SOCKET _sock = INVALID_SOCKET;
 	INetEvent* _pNetEvent = nullptr;
@@ -144,6 +158,10 @@ inline void CellServer::AddClient(ClientSocket * pClient)
 	//NewUserJoin userJoin;
 	//userJoin.sock = (int)pClient->GetSocketfd();
 	//SendData2All(&userJoin);
+	if (_pNetEvent)
+	{
+		_pNetEvent->OnNetJoin(pClient);
+	}
 	//加入到待处理队列
 	std::lock_guard<std::mutex> lock(_mutex);
 	_clientsBuf.push_back(pClient);
@@ -198,7 +216,7 @@ inline void CellServer::OnRun()
 		NULL:一直阻塞
 		timeval 只能精确到秒
 		*/
-		timeval t = { 0, 30 };
+		timeval t = { 0, 1 };
 		int ret = select((int)maxSock + 1, &fdRead, nullptr, nullptr, &t);
 		if (SOCKET_ERROR == ret)
 		{
@@ -226,7 +244,7 @@ inline void CellServer::OnRun()
 					{
 						if (_pNetEvent)
 						{
-							_pNetEvent->OnUserLeave(_clients[n]);
+							_pNetEvent->OnNetLeave(_clients[n]);
 						}
 						delete _clients[n];
 						_clients.erase(iter);
@@ -261,34 +279,13 @@ inline void CellServer::Close()
 	}
 }
 
-inline int CellServer::SendData(SOCKET cSock, DataHeader * pHeader)
-{
-	int ret = SOCKET_ERROR;
-	if (IsRun() && pHeader)
-	{
-		ret = send(cSock, (const char*)pHeader, pHeader->dataLength, 0);
-		if (SOCKET_ERROR == ret)
-		{
-			printf("SendData error.\n");
-		}
-	}
-	return ret;
-}
-inline void CellServer::SendData2All(DataHeader * pHeader)
-{
-	for (int n = 0; n < _clients.size(); n++)
-	{
-		SendData(_clients[n]->GetSocketfd(), pHeader);
-	}
-}
-
 int CellServer::RecvData(ClientSocket* pClient)
 {
 	char szRecvBuf[RECV_BUF_SIZE] = {};
 	int nLen = (int)recv(pClient->GetSocketfd(), szRecvBuf, RECV_BUF_SIZE, 0);
 	if (nLen <= 0)
 	{
-		printf("客户端<sock=%d>退出，任务结束.\n", (int)pClient->GetSocketfd());
+		//printf("客户端<sock=%d>退出，任务结束.\n", (int)pClient->GetSocketfd());
 		return -1;
 	}
 	//把接收缓冲区的数据复制到消息缓冲区
@@ -305,7 +302,7 @@ int CellServer::RecvData(ClientSocket* pClient)
 			//剩余未处理的消息长度
 			int nLeftMsgLen = pClient->GetLastMsgPos() - pHeader->dataLength;
 			//处理消息
-			OnNetMsg(pClient->GetSocketfd(), pHeader);
+			OnNetMsg(pClient, pHeader);
 			if (nLeftMsgLen > 0)
 			{
 				//未处理的消息前移
@@ -325,42 +322,11 @@ int CellServer::RecvData(ClientSocket* pClient)
 	return 0;
 }
 
-void CellServer::OnNetMsg(SOCKET cSock, DataHeader * pHeader)
+void CellServer::OnNetMsg(ClientSocket* pClient, DataHeader * pHeader)
 {
 	if (_pNetEvent)
 	{
-		_pNetEvent->OnNetMsg();
-	}
-
-	switch (pHeader->cmd)
-	{
-	case CMD_LOGIN:
-	{
-		Login* pLogin = (Login*)pHeader;
-		//printf("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s\n",
-		//	pLogin->dataLength, pLogin->userName, pLogin->passWord);
-		//忽略登录消息的具体数据
-		//LoginResult loginResult;
-		//SendData(cSock, &loginResult);
-	}
-	break;
-	case CMD_LOGINOUT:
-	{
-		Logout* pLogout = (Logout*)pHeader;
-		//printf("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s\n",
-		//	pLogout->dataLength, pLogout->userName);
-		//忽略登出消息的具体数据
-		//LogoutResult loginoutResult;
-		//SendData(cSock, &loginoutResult);
-	}
-	break;
-	default:
-	{
-		printf("收到未定义消息.\n");
-		DataHeader dh;
-		SendData(cSock, &dh);
-	}
-	break;
+		_pNetEvent->OnNetMsg(pClient, pHeader);
 	}
 }
 //////////////////////////////////////////////////////////////////////////
@@ -380,7 +346,7 @@ public:
 	//是否运行
 	bool IsRun();
 	//创建工作子线程
-	void Start();
+	void Start(int cellServerCount = 1);
 private:
 	//初始化 socket
 	void InitSocket();
@@ -389,23 +355,14 @@ private:
 	//添加新客户端到子线程
 	void AddClient2CellServer(ClientSocket* pClient);
 	void time4msg();
-
-	void OnUserLeave(ClientSocket* pClient) override
-	{
-		_clientCount--;
-	}
-
-	void OnNetMsg() override
-	{
-		_msgCount++;
-	}
 private:
 	SOCKET _sock;
 	//子线程队列
-	CellServer* _cellServer[CELL_THREAD_COUNT];
+	std::vector<CellServer*> _cellServers;
 	CELLTimeStamp _tTime;
-	int _msgCount = 0;
-	int _clientCount = 0;
+protected:
+	std::atomic<int> _clientCount = 0;
+	std::atomic<int> _msgCount = 0;
 };
 
 EasyTcpServer::EasyTcpServer()
@@ -480,8 +437,6 @@ int EasyTcpServer::Listen(int backlog)
 		}
 		else {
 			printf("监听网络<socket=%d>端口成功.\n", (int)_sock);
-			//启动子线程队列
-			Start();
 		}
 	}
 
@@ -504,8 +459,6 @@ int EasyTcpServer::Accept()
 	}
 	//把新客户端 socket 添加到全局数据里面
 	AddClient2CellServer(new ClientSocket(cSock));
-	//printf("Total<%d>接收到新客户端<sock:%d>: IP = %s\n", (int)_clients.size(), (int)cSock, inet_ntoa(_cAddr.sin_addr));
-
 	return 0;
 }
 
@@ -544,7 +497,7 @@ bool EasyTcpServer::OnRun()
 	NULL:一直阻塞
 	timeval 只能精确到秒
 	*/
-	timeval t = { 0, 10 };
+	timeval t = { 0, 1 };
 	int ret = select((int)_sock + 1, &fdRead, nullptr, nullptr, &t);
 	if (SOCKET_ERROR == ret)
 	{
@@ -565,25 +518,25 @@ bool EasyTcpServer::OnRun()
 	return true;
 }
 
-inline void EasyTcpServer::Start()
+inline void EasyTcpServer::Start(int cellServerCount)
 {
-	for (int n = 0; n < CELL_THREAD_COUNT; n++)
+	for (int n = 0; n < cellServerCount; n++)
 	{
-		_cellServer[n] = new CellServer(_sock, this);
-		_cellServer[n]->Start();
+		auto ser = new CellServer(_sock, this);
+		_cellServers.push_back(ser);
+		ser->Start();
 	}
 }
 
 inline void EasyTcpServer::AddClient2CellServer(ClientSocket * pClient)
 {
-	_clientCount++;
 	//找出最小客户端数据，添加进去
-	CellServer* pMinServer = _cellServer[0];
-	for (int n = 1; n < CELL_THREAD_COUNT; n++)
+	CellServer* pMinServer = _cellServers[0];
+	for (int n = 1; n < _cellServers.size(); n++)
 	{
-		if (pMinServer->GetClientCount() > _cellServer[n]->GetClientCount())
+		if (pMinServer->GetClientCount() > _cellServers[n]->GetClientCount())
 		{
-			pMinServer = _cellServer[n];
+			pMinServer = _cellServers[n];
 		}
 	}
 	pMinServer->AddClient(pClient);
@@ -594,7 +547,8 @@ inline void EasyTcpServer::time4msg()
 	auto t = _tTime.getElapseTimeInSeconds();
 	if (t > 1.0)
 	{
-		printf("time<%lf>....clients<%d>, msg<%d>\n", t, _clientCount, _msgCount);
+		printf("time<%lf>, thread<%d>, clients<%d>, msg<%d>\n",
+			t, _cellServers.size(), _clientCount, _msgCount);
 		_tTime.update();
 		_msgCount = 0;
 	}

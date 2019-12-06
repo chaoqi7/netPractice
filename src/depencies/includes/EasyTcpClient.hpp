@@ -50,7 +50,7 @@ private:
 	//接收缓冲区大小（每次从socket缓冲区读取的最大数据）
 	char _szRecvBuf[RECV_BUF_SIZE] = {};
 	//消息缓冲区
-	char _szMsgBuf[RECV_BUF_SIZE * 10] = {};
+	char _szMsgBuf[RECV_BUF_SIZE * 5] = {};
 	//消息缓冲区消息的长度
 	int _lastMsgPos = 0;
 };

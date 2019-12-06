@@ -4,7 +4,7 @@
 #include "NetMsg.h"
 #include "EasyTcpClient.hpp"
 
-const int g_cCount = 4000;
+const int g_cCount = 10000;
 const int g_tCount = 4;
 bool g_bRun = true;
 
@@ -61,7 +61,7 @@ void sendThread(int id)
 		for (int n = begin; n < end; n++)
 		{
 			client[n]->SendData((const char*)&login, sizeof(login));
-			//client[n]->OnRun();			
+			client[n]->OnRun();			
 		}
 	}
 

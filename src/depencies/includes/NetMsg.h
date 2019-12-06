@@ -2,7 +2,7 @@
 #define _NET_MSG_H_
 
 #ifndef RECV_BUF_SIZE
-#define RECV_BUF_SIZE 40960
+#define RECV_BUF_SIZE 10240
 #endif // RECV_BUF_SIZE
 
 enum CMD
