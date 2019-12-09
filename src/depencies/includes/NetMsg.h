@@ -1,9 +1,14 @@
 ﻿#ifndef _NET_MSG_H_
 #define _NET_MSG_H_
 
+//接收缓冲区大小
 #ifndef RECV_BUF_SIZE
-#define RECV_BUF_SIZE 10240
+#define RECV_BUF_SIZE 10240 * 5
 #endif // RECV_BUF_SIZE
+//发送缓冲区大小
+#ifndef SEND_BUF_SIZE
+#define SEND_BUF_SIZE 10240 * 5
+#endif // SEND_BUF_SIZE
 
 enum CMD
 {

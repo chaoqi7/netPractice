@@ -47,8 +47,6 @@ private:
 	virtual void OnNetMsg(DataHeader* pHeader);
 private:
 	SOCKET _sock;
-	//接收缓冲区大小（每次从socket缓冲区读取的最大数据）
-	char _szRecvBuf[RECV_BUF_SIZE] = {};
 	//消息缓冲区
 	char _szMsgBuf[RECV_BUF_SIZE * 5] = {};
 	//消息缓冲区消息的长度
@@ -142,7 +140,7 @@ inline bool EasyTcpClient::OnRun()
 		fd_set fdReads;
 		FD_ZERO(&fdReads);
 		FD_SET(_sock, &fdReads);
-		timeval t = { 1, 0 };
+		timeval t = { 0, 0 };
 		int ret = select((int)_sock + 1, &fdReads, nullptr, nullptr, &t);
 		if (ret == SOCKET_ERROR)
 		{
@@ -191,15 +189,13 @@ inline int EasyTcpClient::SendData(const char * pData, const int iLen)
 inline int EasyTcpClient::RecvData()
 {
 	//一次性从 socket 缓冲区里面读取最大的数据
-	int nLen = recv(_sock, _szRecvBuf, RECV_BUF_SIZE, 0);
+	char* szRecv = _szMsgBuf + _lastMsgPos;
+	int nLen = recv(_sock, szRecv, RECV_BUF_SIZE * 5 - _lastMsgPos, 0);
 	if (nLen <= 0)
 	{
 		printf("<sock=%d>与服务器断开连接，任务结束.\n", (int)_sock);
 		return -1;
 	}
-
-	//把接收缓冲区的数据复制到消息缓冲区
-	memcpy(_szMsgBuf + _lastMsgPos, _szRecvBuf, nLen);
 	//当前未处理的消息长度 + nLen
 	_lastMsgPos += nLen;
 	//是否有一个消息头长度

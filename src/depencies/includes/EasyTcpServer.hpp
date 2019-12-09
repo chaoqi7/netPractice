@@ -34,19 +34,25 @@ public:
 	//获取当前客户端的 socket
 	SOCKET GetSocketfd();
 	//获取当前消息的最后索引
-	int GetLastMsgPos();
+	int GetLastRecvPos();
 	//设置当前消息的最后索引
-	void SetLastMsgPos(int newPos);
+	void SetLastRecvPos(int newPos);
 	//获取当前消息缓冲区
-	char* MsgBuf();
+	char* RecvBuf();
 	//关闭当前客户端的 socket
 	void Close();
 	//发送消息
 	int SendData(DataHeader* pHeader);
 private:
 	SOCKET _cSock = INVALID_SOCKET;
-	char _szMsgBuf[RECV_BUF_SIZE * 5] = {};
-	int _lastMsgPos = 0;
+	//接收消息缓冲区
+	char _szRecvBuf[RECV_BUF_SIZE] = {};
+	//接收消息缓冲区位置
+	int _lastRecvPos = 0;
+	//发送缓冲区
+	char _szSendBuf[SEND_BUF_SIZE] = {};
+	//发送缓冲区位置
+	int _lastSendPos = 0;
 };
 
 ClientSocket::ClientSocket(SOCKET cSock)
@@ -64,19 +70,19 @@ inline SOCKET ClientSocket::GetSocketfd()
 	return _cSock;
 }
 
-inline int ClientSocket::GetLastMsgPos()
+inline int ClientSocket::GetLastRecvPos()
 {
-	return _lastMsgPos;
+	return _lastRecvPos;
 }
 
-inline void ClientSocket::SetLastMsgPos(int newPos)
+inline void ClientSocket::SetLastRecvPos(int newPos)
 {
-	_lastMsgPos = newPos;
+	_lastRecvPos = newPos;
 }
 
-inline char * ClientSocket::MsgBuf()
+inline char * ClientSocket::RecvBuf()
 {
-	return _szMsgBuf;
+	return _szRecvBuf;
 }
 inline void ClientSocket::Close()
 {
@@ -93,14 +99,42 @@ inline void ClientSocket::Close()
 inline int ClientSocket::SendData(DataHeader * pHeader)
 {
 	int ret = SOCKET_ERROR;
-	if (pHeader)
-	{
-		ret = send(_cSock, (const char*)pHeader, pHeader->dataLength, 0);
-		if (SOCKET_ERROR == ret)
+	int nSendLen = pHeader->dataLength;
+	const char* pSendData = (const char*)pHeader;
+
+	while (true)
+	{		
+		if ((_lastSendPos + nSendLen) >= SEND_BUF_SIZE)
 		{
-			printf("sock=%d SendData error.\n", (int)_cSock);
+			int nCopyLen = SEND_BUF_SIZE - _lastSendPos;
+			if (nCopyLen > 0)
+			{
+				//复制数据
+				memcpy(_szSendBuf + _lastSendPos, pSendData, nCopyLen);
+				//修正位置
+				pSendData += nCopyLen;
+				nSendLen -= nCopyLen;
+			}
+
+			//发送数据
+			ret = send(_cSock, _szSendBuf, SEND_BUF_SIZE, 0);
+			//清空缓冲区
+			_lastSendPos = 0;
+			if (SOCKET_ERROR == ret)
+			{
+				printf("sock=%d sendData fail.\n", (int)_cSock);
+				return ret;
+			}			
+		}
+		else {
+			//消息没有达到缓冲区最大，就只是复制数据
+			memcpy(_szSendBuf + _lastSendPos, pSendData, nSendLen);
+			_lastSendPos += nSendLen;
+			ret = nSendLen;
+			break;
 		}
 	}
+
 	return ret;
 }
 //////////////////////////////////////////////////////////////////////////
@@ -139,7 +173,15 @@ private:
 	std::vector<ClientSocket*> _clients;
 	//待处理队列
 	std::vector<ClientSocket*> _clientsBuf;
+	//待处理队列锁
 	std::mutex _mutex;
+
+	//查询的客户端集合的备份
+	fd_set _fdReadBack;
+	//客户端数据有变化
+	bool _clientChange = true;
+	//当前最大的 socket
+	SOCKET _maxSocket;
 };
 
 inline CellServer::CellServer(SOCKET sock, INetEvent * netEvent)
@@ -188,6 +230,7 @@ inline void CellServer::OnRun()
 				_clients.push_back(pNewClient);
 			}
 			_clientsBuf.clear();
+			_clientChange = true;
 		}		
 
 		if (_clients.empty())
@@ -199,25 +242,32 @@ inline void CellServer::OnRun()
 
 		fd_set fdRead;
 		FD_ZERO(&fdRead);
-		//nfds 当前 socket 最大值+1（兼容贝克利套接字）. 在 windows 里面可以设置为 0.
-		SOCKET maxSock = _clients[0]->GetSocketfd();
-		//把全局客户端数据加入可读监听部分
-		for (int n = 0; n < _clients.size(); n++)
+		if (_clientChange)
 		{
-			FD_SET(_clients[n]->GetSocketfd(), &fdRead);
-#ifndef _WIN32
-			if (maxSock < _clients[n]->GetSocketfd())
+			_clientChange = false;
+			//nfds 当前 socket 最大值+1（兼容贝克利套接字）. 在 windows 里面可以设置为 0.
+			_maxSocket = _clients[0]->GetSocketfd();
+			//把全局客户端数据加入可读监听部分
+			for (int n = 0; n < _clients.size(); n++)
 			{
-				maxSock = _clients[n]->GetSocketfd();
+				FD_SET(_clients[n]->GetSocketfd(), &fdRead);
+				if (_maxSocket < _clients[n]->GetSocketfd())
+				{
+					_maxSocket = _clients[n]->GetSocketfd();
+				}
 			}
-#endif
+			memcpy(&_fdReadBack, &fdRead, sizeof(fd_set));
 		}
+		else {
+			memcpy(&fdRead, &_fdReadBack, sizeof(fd_set));
+		}
+
 		/*
 		NULL:一直阻塞
 		timeval 只能精确到秒
 		*/
 		timeval t = { 0, 1 };
-		int ret = select((int)maxSock + 1, &fdRead, nullptr, nullptr, &t);
+		int ret = select((int)_maxSocket + 1, &fdRead, nullptr, nullptr, &t);
 		if (SOCKET_ERROR == ret)
 		{
 			printf("cellServer select error.\n");
@@ -242,6 +292,7 @@ inline void CellServer::OnRun()
 					auto iter = _clients.begin() + n;
 					if (iter != _clients.end())
 					{
+						_clientChange = true;
 						if (_pNetEvent)
 						{
 							_pNetEvent->OnNetLeave(_clients[n]);
@@ -281,37 +332,35 @@ inline void CellServer::Close()
 
 int CellServer::RecvData(ClientSocket* pClient)
 {
-	char szRecvBuf[RECV_BUF_SIZE] = {};
-	int nLen = (int)recv(pClient->GetSocketfd(), szRecvBuf, RECV_BUF_SIZE, 0);
+	char* szRecvBuf = pClient->RecvBuf() + pClient->GetLastRecvPos();
+	int nLen = (int)recv(pClient->GetSocketfd(), szRecvBuf, RECV_BUF_SIZE - pClient->GetLastRecvPos(), 0);
 	if (nLen <= 0)
 	{
 		//printf("客户端<sock=%d>退出，任务结束.\n", (int)pClient->GetSocketfd());
 		return -1;
 	}
-	//把接收缓冲区的数据复制到消息缓冲区
-	memcpy(pClient->MsgBuf() + pClient->GetLastMsgPos(), szRecvBuf, nLen);
 	//当前未处理的消息长度 + nLen
-	pClient->SetLastMsgPos(pClient->GetLastMsgPos() + nLen);
+	pClient->SetLastRecvPos(pClient->GetLastRecvPos() + nLen);
 	//是否有一个消息头长度
-	while (pClient->GetLastMsgPos() >= sizeof(DataHeader))
+	while (pClient->GetLastRecvPos() >= sizeof(DataHeader))
 	{
-		DataHeader* pHeader = (DataHeader*)pClient->MsgBuf();
+		DataHeader* pHeader = (DataHeader*)pClient->RecvBuf();
 		//是否有一条真正的消息长度
-		if (pClient->GetLastMsgPos() >= pHeader->dataLength)
+		if (pClient->GetLastRecvPos() >= pHeader->dataLength)
 		{
 			//剩余未处理的消息长度
-			int nLeftMsgLen = pClient->GetLastMsgPos() - pHeader->dataLength;
+			int nLeftMsgLen = pClient->GetLastRecvPos() - pHeader->dataLength;
 			//处理消息
 			OnNetMsg(pClient, pHeader);
 			if (nLeftMsgLen > 0)
 			{
 				//未处理的消息前移
-				memcpy(pClient->MsgBuf(), pClient->MsgBuf() + pHeader->dataLength, nLeftMsgLen);
+				memcpy(pClient->RecvBuf(), pClient->RecvBuf() + pHeader->dataLength, nLeftMsgLen);
 				//更新未处理消息长度
-				pClient->SetLastMsgPos(nLeftMsgLen);
+				pClient->SetLastRecvPos(nLeftMsgLen);
 			}
 			else {
-				pClient->SetLastMsgPos(0);
+				pClient->SetLastRecvPos(0);
 			}
 		}
 		else {
@@ -347,6 +396,25 @@ public:
 	bool IsRun();
 	//创建工作子线程
 	void Start(int cellServerCount = 1);
+public:
+	//继承的接口
+	void OnNetJoin(ClientSocket* pClient) override
+	{
+		_clientCount++;
+		//printf("EasyTcpServer OnNetJoin.......\n");
+	}
+
+	void OnNetLeave(ClientSocket* pClient) override
+	{
+		_clientCount--;
+		//printf("EasyTcpServer OnNetLeave.......\n");
+	}
+
+	void OnNetMsg(ClientSocket* pClient, DataHeader* pHeader) override
+	{
+		_msgCount++;
+		//printf("EasyTcpServer OnNetMsg.......\n");
+	}
 private:
 	//初始化 socket
 	void InitSocket();
@@ -487,9 +555,6 @@ bool EasyTcpServer::OnRun()
 {
 	time4msg();
 	fd_set fdRead;
-	fd_set fdWrite;
-	fd_set fdExcept;
-
 	FD_ZERO(&fdRead);
 	//把服务器 socket 加入监听
 	FD_SET(_sock, &fdRead);

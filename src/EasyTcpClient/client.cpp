@@ -1,13 +1,18 @@
 ﻿
 #include <thread>
+#include <atomic>
 
 #include "NetMsg.h"
 #include "EasyTcpClient.hpp"
+#include "CELLTimeStamp.hpp"
 
-const int g_cCount = 10000;
+const int g_cCount = 1000;
 const int g_tCount = 4;
 bool g_bRun = true;
 
+
+std::atomic<int> g_sendCount = 0;
+std::atomic<int> g_readyCount = 0;
 
 void cmdThread()
 {
@@ -47,6 +52,13 @@ void sendThread(int id)
 		//printf("Connect=%d\n", n);
 	}
 
+	g_readyCount++;
+	if (g_readyCount < g_tCount)
+	{
+		std::chrono::milliseconds t(1);
+		std::this_thread::sleep_for(t);
+	}
+
 	Login login[10] = {};
 	for (int n = 0; n < 10; n++)
 	{
@@ -60,8 +72,9 @@ void sendThread(int id)
 	{
 		for (int n = begin; n < end; n++)
 		{
-			client[n]->SendData((const char*)&login, sizeof(login));
-			client[n]->OnRun();			
+			if (SOCKET_ERROR != client[n]->SendData((const char*)&login, sizeof(login)))
+				g_sendCount++;
+			client[n]->OnRun();
 		}
 	}
 
@@ -82,8 +95,19 @@ int main(int argc, char** argv)
 		std::thread t(sendThread, n + 1);
 		t.detach();
 	}
+	CELLTimeStamp tTime;
+	while (g_bRun)
+	{
+		auto t = tTime.getElapseTimeInSeconds();
+		if (t >= 1.0)
+		{
+			printf("thread<%d>, clients<%d>, time<%lf>, send<%d>\n",
+				g_tCount, g_cCount, t, g_sendCount);
+			g_sendCount = 0;
+			tTime.update();
+		}
+	}
 
-	getchar();
 	printf("exit the Main Thread.\n");
 	return 0;
 }

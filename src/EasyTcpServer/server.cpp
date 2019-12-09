@@ -25,17 +25,17 @@ class MyServer : public EasyTcpServer
 public:
 	void OnNetJoin(ClientSocket* pClient) override
 	{
-		_clientCount++;
+		EasyTcpServer::OnNetJoin(pClient);
 	}
 
 	void OnNetLeave(ClientSocket* pClient) override
 	{
-		_clientCount--;
+		EasyTcpServer::OnNetLeave(pClient);
 	}
 
 	void OnNetMsg(ClientSocket* pClient, DataHeader* pHeader) override
 	{
-		_msgCount++;
+		EasyTcpServer::OnNetMsg(pClient, pHeader);
 		switch (pHeader->cmd)
 		{
 		case CMD_LOGIN:
