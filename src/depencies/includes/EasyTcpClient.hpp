@@ -35,7 +35,7 @@ public:
 	//是否运行
 	bool IsRun();
 	//发送消息
-	int SendData(DataHeader* pHeader);
+	int SendData(netmsg_DataHeader* pHeader);
 	int SendData(const char* pData, const int iLen);
 
 private:
@@ -44,7 +44,7 @@ private:
 	//接收数据
 	int RecvData();
 	//处理消息
-	virtual void OnNetMsg(DataHeader* pHeader);
+	virtual void OnNetMsg(netmsg_DataHeader* pHeader);
 private:
 	SOCKET _sock;
 	//消息缓冲区
@@ -168,7 +168,7 @@ inline bool EasyTcpClient::OnRun()
 	return false;
 }
 
-inline int EasyTcpClient::SendData(DataHeader * pHeader)
+inline int EasyTcpClient::SendData(netmsg_DataHeader * pHeader)
 {
 	if (IsRun() && pHeader)
 	{
@@ -199,9 +199,9 @@ inline int EasyTcpClient::RecvData()
 	//当前未处理的消息长度 + nLen
 	_lastMsgPos += nLen;
 	//是否有一个消息头长度
-	while (_lastMsgPos >= sizeof(DataHeader))
+	while (_lastMsgPos >= sizeof(netmsg_DataHeader))
 	{
-		DataHeader* pHeader = (DataHeader*)_szMsgBuf;
+		netmsg_DataHeader* pHeader = (netmsg_DataHeader*)_szMsgBuf;
 		//是否有一条真正的消息长度
 		if (_lastMsgPos >= pHeader->dataLength)
 		{
@@ -230,32 +230,32 @@ inline int EasyTcpClient::RecvData()
 	return 0;
 }
 
-inline void EasyTcpClient::OnNetMsg(DataHeader* pHeader)
+inline void EasyTcpClient::OnNetMsg(netmsg_DataHeader* pHeader)
 {
 	switch (pHeader->cmd)
 	{
-	case CMD_LOGIN_RESULT:
+	case CMD_S2C_LOGIN:
 	{		
-		LoginResult* pLoginResult = (LoginResult*)pHeader;
+		netmsg_S2C_Login* pLoginResult = (netmsg_S2C_Login*)pHeader;
 		//printf("<sockt=%d>收到服务器返回消息 CMD_LOGIN_RESULT, Result:%d, len:%d\n",
 		//	(int)_sock, pLoginResult->result, pLoginResult->dataLength);
 	}
 	break;
-	case CMD_LOGINOUT_RESULT:
+	case CMD_S2C_LOGOUT:
 	{
-		LogoutResult* pLogoutResult = (LogoutResult*)pHeader;
+		netmsg_S2C_Logout* pLogoutResult = (netmsg_S2C_Logout*)pHeader;
 		//printf("<sockt=%d>收到服务器返回消息 CMD_LOGINOUT_RESULT, Result:%d, len:%d\n",
 		//	(int)_sock, pLogoutResult->result, pLogoutResult->dataLength);
 	}
 	break;
-	case CMD_NEW_USER_JOIN:
+	case CMD_S2C_NEW_USER_JOIN:
 	{
-		NewUserJoin* pUserJoin = (NewUserJoin*)pHeader;
+		netmsg_S2C_NewUserJoin* pUserJoin = (netmsg_S2C_NewUserJoin*)pHeader;
 		//printf("<sockt=%d>收到服务器返回消息 CMD_NEW_USER_JOIN, sock:%d, len:%d\n",
 		//	(int)_sock, pUserJoin->sock, pUserJoin->dataLength);
 	}
 	break;
-	case CMD_ERROR:
+	case CMD_S2C_ERROR:
 	{
 		printf("CMD_ERROR...\n");
 	}

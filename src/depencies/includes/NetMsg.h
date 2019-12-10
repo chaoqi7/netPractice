@@ -3,40 +3,40 @@
 
 //接收缓冲区大小
 #ifndef RECV_BUF_SIZE
-#define RECV_BUF_SIZE 10240 * 5
+#define RECV_BUF_SIZE 10240
 #endif // RECV_BUF_SIZE
 //发送缓冲区大小
 #ifndef SEND_BUF_SIZE
-#define SEND_BUF_SIZE 10240 * 5
+#define SEND_BUF_SIZE 10240
 #endif // SEND_BUF_SIZE
 
 enum CMD
 {
 	CMD_LOGIN,
-	CMD_LOGIN_RESULT,
-	CMD_LOGINOUT,
-	CMD_LOGINOUT_RESULT,
-	CMD_NEW_USER_JOIN,
-	CMD_ERROR,
+	CMD_S2C_LOGIN,
+	CMD_LOGOUT,
+	CMD_S2C_LOGOUT,
+	CMD_S2C_NEW_USER_JOIN,
+	CMD_S2C_ERROR,
 };
 
-struct DataHeader
+struct netmsg_DataHeader
 {	
-	DataHeader()
+	netmsg_DataHeader()
 	{
-		this->dataLength = sizeof(DataHeader);
-		this->cmd = CMD_ERROR;
+		this->dataLength = sizeof(netmsg_DataHeader);
+		this->cmd = CMD_S2C_ERROR;
 	}
 	short dataLength;
 	short cmd;	
 };
 
 //登录相关
-struct Login : public DataHeader
+struct netmsg_C2S_Login : public netmsg_DataHeader
 {
-	Login()
+	netmsg_C2S_Login()
 	{
-		this->dataLength = sizeof(Login);
+		this->dataLength = sizeof(netmsg_C2S_Login);
 		this->cmd = CMD_LOGIN;
 	}
 	char userName[32];
@@ -44,12 +44,12 @@ struct Login : public DataHeader
 	char data[56];
 };
 
-struct LoginResult : public DataHeader
+struct netmsg_S2C_Login : public netmsg_DataHeader
 {
-	LoginResult()
+	netmsg_S2C_Login()
 	{
-		this->dataLength = sizeof(LoginResult);
-		this->cmd = CMD_LOGIN_RESULT;
+		this->dataLength = sizeof(netmsg_S2C_Login);
+		this->cmd = CMD_S2C_LOGIN;
 		this->result = 0;
 	}
 	int result;
@@ -57,33 +57,33 @@ struct LoginResult : public DataHeader
 };
 
 //登出相关
-struct Logout : public DataHeader
+struct netmsg_C2S_Logout : public netmsg_DataHeader
 {
-	Logout()
+	netmsg_C2S_Logout()
 	{
-		this->dataLength = sizeof(Logout);
-		this->cmd = CMD_LOGINOUT;
+		this->dataLength = sizeof(netmsg_C2S_Logout);
+		this->cmd = CMD_LOGOUT;
 	}
 	char userName[32];
 };
 
-struct LogoutResult : public DataHeader
+struct netmsg_S2C_Logout : public netmsg_DataHeader
 {
-	LogoutResult()
+	netmsg_S2C_Logout()
 	{
-		this->dataLength = sizeof(LogoutResult);
-		this->cmd = CMD_LOGINOUT_RESULT;
+		this->dataLength = sizeof(netmsg_S2C_Logout);
+		this->cmd = CMD_S2C_LOGOUT;
 		this->result = 0;
 	}
 	int result;
 };
 
-struct NewUserJoin : public DataHeader
+struct netmsg_S2C_NewUserJoin : public netmsg_DataHeader
 {
-	NewUserJoin()
+	netmsg_S2C_NewUserJoin()
 	{
-		this->dataLength = sizeof(NewUserJoin);
-		this->cmd = CMD_NEW_USER_JOIN;
+		this->dataLength = sizeof(netmsg_S2C_NewUserJoin);
+		this->cmd = CMD_S2C_NEW_USER_JOIN;
 		this->sock = 0;
 	}
 	int sock;

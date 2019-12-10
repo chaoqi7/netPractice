@@ -6,7 +6,7 @@
 #include "EasyTcpClient.hpp"
 #include "CELLTimeStamp.hpp"
 
-const int g_cCount = 1000;
+const int g_cCount = 10000;
 const int g_tCount = 4;
 bool g_bRun = true;
 
@@ -48,7 +48,7 @@ void sendThread(int id)
 
 	for (int n = begin; n < end; n++)
 	{
-		client[n]->Connect("192.168.3.248", 4567);
+		client[n]->Connect("127.0.0.1", 4567);
 		//printf("Connect=%d\n", n);
 	}
 
@@ -59,8 +59,8 @@ void sendThread(int id)
 		std::this_thread::sleep_for(t);
 	}
 
-	Login login[10] = {};
-	for (int n = 0; n < 10; n++)
+	netmsg_C2S_Login login[1] = {};
+	for (int n = 0; n < 1; n++)
 	{
 		strcpy(login[n].userName, "chaoqi");
 		strcpy(login[n].passWord, "chaoqimima");
