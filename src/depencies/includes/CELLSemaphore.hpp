@@ -2,17 +2,23 @@
 #define _CELL_SEMAPHORE_HPP_
 
 #include <thread>
-#include <chrono>
+#include <mutex>
+#include <condition_variable>
 
 class CELLSemaphore
 {
 public:
 	CELLSemaphore();
 	~CELLSemaphore();
+	//阻塞
 	void Wait();
+	//唤醒
 	void Wakeup();
 private:
-	bool _bWaitExit = true;
+	std::condition_variable _cv;
+	std::mutex _mutex;
+	int _waitNum = 0;
+	int _wakeupNum = 0;
 };
 
 CELLSemaphore::CELLSemaphore()
@@ -25,21 +31,24 @@ CELLSemaphore::~CELLSemaphore()
 
 inline void CELLSemaphore::Wait()
 {
-	while (_bWaitExit)
+	std::unique_lock<std::mutex> lock(_mutex);
+	if (++_waitNum > 0)
 	{
-		std::chrono::milliseconds t(1);
-		std::this_thread::sleep_for(t);
+		_cv.wait(lock, [this]()->bool {
+			return _wakeupNum > 0;
+		});
+		--_wakeupNum;
 	}
+
 }
 
 inline void CELLSemaphore::Wakeup()
 {
-	if (_bWaitExit)
+	std::lock_guard<std::mutex> lock(_mutex);
+	if (--_waitNum <= 0)
 	{
-		_bWaitExit = false;
-	}
-	else {
-		printf("CELLSemaphore::Wakeup error.\n");
+		++_wakeupNum;
+		_cv.notify_one();
 	}
 }
 
