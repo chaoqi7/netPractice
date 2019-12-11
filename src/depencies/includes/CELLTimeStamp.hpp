@@ -6,6 +6,29 @@
 
 using namespace std::chrono;
 
+class CELLTime
+{
+public:
+	CELLTime();
+	~CELLTime();
+	//获取以毫秒表示的当前时间
+	static long long getNowInMilliseconds();
+};
+
+CELLTime::CELLTime()
+{
+}
+
+CELLTime::~CELLTime()
+{
+}
+
+inline long long CELLTime::getNowInMilliseconds()
+{
+	return duration_cast<milliseconds>
+		(high_resolution_clock::now().time_since_epoch()).count();
+}
+
 class CELLTimeStamp
 {
 public:

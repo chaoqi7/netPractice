@@ -17,6 +17,8 @@ enum CMD
 	CMD_LOGOUT,
 	CMD_S2C_LOGOUT,
 	CMD_S2C_NEW_USER_JOIN,
+	CMD_C2S_HEART,
+	CMD_S2C_HEART,
 	CMD_S2C_ERROR,
 };
 
@@ -87,6 +89,24 @@ struct netmsg_S2C_NewUserJoin : public netmsg_DataHeader
 		this->sock = 0;
 	}
 	int sock;
+};
+
+struct netmsg_C2S_Heart : public netmsg_DataHeader
+{
+	netmsg_C2S_Heart()
+	{
+		this->dataLength = sizeof(netmsg_C2S_Heart);
+		this->cmd = CMD_C2S_HEART;
+	}
+};
+
+struct netmsg_S2C_Heart : public netmsg_DataHeader
+{
+	netmsg_S2C_Heart()
+	{
+		this->dataLength = sizeof(netmsg_S2C_Heart);
+		this->cmd = CMD_S2C_HEART;
+	}
 };
 
 #endif // _NET_MSG_H_

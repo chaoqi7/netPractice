@@ -161,8 +161,14 @@ int EasyTcpServer::Accept()
 
 void EasyTcpServer::Close()
 {
+	printf("EasyTcpServer::Close start\n");
 	if (IsRun())
 	{
+		for (auto ser : _cellServers)
+		{
+			delete ser;
+		}
+		_cellServers.clear();
 #ifdef _WIN32
 		//断开 socket 连接
 		closesocket(_sock);
@@ -173,6 +179,7 @@ void EasyTcpServer::Close()
 #endif
 		_sock = INVALID_SOCKET;
 	}
+	printf("EasyTcpServer::Close end\n");
 }
 
 bool EasyTcpServer::IsRun()
@@ -216,7 +223,7 @@ inline void EasyTcpServer::Start(int cellServerCount)
 {
 	for (int n = 0; n < cellServerCount; n++)
 	{
-		auto ser = new CellServer(_sock, this);
+		auto ser = new CellServer(n+1, this);
 		_cellServers.push_back(ser);
 		ser->Start();
 	}
@@ -242,7 +249,7 @@ inline void EasyTcpServer::time4msg()
 	if (t > 1.0)
 	{
 		printf("time<%lf>, thread<%d>, clients<%d>, msg<%d>\n",
-			t, _cellServers.size(), _clientCount, _msgCount);
+			t, (int)_cellServers.size(), (int)_clientCount, (int)_msgCount);
 		_tTime.update();
 		_msgCount = 0;
 	}

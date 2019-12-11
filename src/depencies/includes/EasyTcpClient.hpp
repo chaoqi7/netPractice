@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <WinSock2.h>
 #pragma comment(lib, "ws2_32.lib")
+#pragma warning(disable:4996)
 #else
 //linux and osx
 #include <unistd.h>

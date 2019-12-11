@@ -4,34 +4,30 @@
 #include <list>
 #include <thread>
 #include <mutex>
+#include <functional>
 //1:1 一个接收线程，对应一个发送线程
-//子任务基类-具体做的任务
-class CellTask
-{
-public:
-	CellTask() {  }
-	virtual ~CellTask() {}
-	virtual void DoTask() {}
-private:
-
-};
-//////////////////////////////////////////////////////////////////////////
 //生产者-消费者模式调度
 class CellTaskServer
 {
+	typedef std::function<void()> CellTask;
 public:
 	CellTaskServer();
 	~CellTaskServer();
-	void AddTask(CellTask* task);
-	void Start();
+	void AddTask(CellTask task);
+	void Start(int id);
+	void Close();
 private:
-	void OnWork();
+	void OnRun();
 private:
 	//正在处理的任务列表
-	std::list<CellTask*> _tasks;
+	std::list<CellTask> _tasks;
 	//待处理任务列表
-	std::list<CellTask*> _tasksBuf;
+	std::list<CellTask> _tasksBuf;
 	std::mutex _mutex;
+	//仅仅为了测试
+	int _id = -1;
+	bool _bRun = false;
+	bool _bWaitExit = true;
 };
 
 CellTaskServer::CellTaskServer()
@@ -41,19 +37,36 @@ CellTaskServer::CellTaskServer()
 CellTaskServer::~CellTaskServer()
 {
 }
-inline void CellTaskServer::AddTask(CellTask * task)
+inline void CellTaskServer::AddTask(CellTask task)
 {
 	std::lock_guard<std::mutex> lock(_mutex);
 	_tasksBuf.push_back(task);
 }
-inline void CellTaskServer::Start()
+inline void CellTaskServer::Start(int id)
 {
-	std::thread t(std::mem_fn(&CellTaskServer::OnWork), this);
+	_id = id;
+	_bRun = true;
+	std::thread t(std::mem_fn(&CellTaskServer::OnRun), this);
 	t.detach();
 }
-inline void CellTaskServer::OnWork()
+inline void CellTaskServer::Close()
 {
-	while (true)
+	printf("CellTaskServer %d::Close start\n", _id);
+	if (_bRun)
+	{
+		_bRun = false;
+		while (_bWaitExit)
+		{
+			std::chrono::milliseconds t(1);
+			std::this_thread::sleep_for(t);
+		}
+	}
+	printf("CellTaskServer %d::Close end\n", _id);
+}
+inline void CellTaskServer::OnRun()
+{
+	printf("CellTaskServer %d::OnRun start\n", _id);
+	while (_bRun)
 	{
 		if (!_tasksBuf.empty())
 		{
@@ -78,11 +91,12 @@ inline void CellTaskServer::OnWork()
 		for (auto pTask : _tasks)
 		{
 			//做任务
-			pTask->DoTask();
-			delete pTask;
+			pTask();
 		}
 		//清空需要处理的任务列表
 		_tasks.clear();
 	}
+	_bWaitExit = false;
+	printf("CellTaskServer %d::OnRun end\n", _id);
 }
 #endif // _CELL_TASK_H_
