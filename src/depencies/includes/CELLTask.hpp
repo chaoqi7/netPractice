@@ -5,6 +5,7 @@
 #include <thread>
 #include <mutex>
 #include <functional>
+#include "CELLSemaphore.hpp"
 //1:1 一个接收线程，对应一个发送线程
 //生产者-消费者模式调度
 class CellTaskServer
@@ -27,7 +28,7 @@ private:
 	//仅仅为了测试
 	int _id = -1;
 	bool _bRun = false;
-	bool _bWaitExit = true;
+	CELLSemaphore _semaphore;
 };
 
 CellTaskServer::CellTaskServer()
@@ -55,11 +56,7 @@ inline void CellTaskServer::Close()
 	if (_bRun)
 	{
 		_bRun = false;
-		while (_bWaitExit)
-		{
-			std::chrono::milliseconds t(1);
-			std::this_thread::sleep_for(t);
-		}
+		_semaphore.Wait();
 	}
 	printf("CellTaskServer %d::Close end\n", _id);
 }
@@ -96,7 +93,7 @@ inline void CellTaskServer::OnRun()
 		//清空需要处理的任务列表
 		_tasks.clear();
 	}
-	_bWaitExit = false;
+	_semaphore.Wakeup();
 	printf("CellTaskServer %d::OnRun end\n", _id);
 }
 #endif // _CELL_TASK_H_

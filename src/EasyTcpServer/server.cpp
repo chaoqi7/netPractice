@@ -102,11 +102,11 @@ int main(int argc, char** argv)
 	}
 	server.Close();
 
-	//CellTaskServer task;
-	//task.Start(1);
-	//std::chrono::milliseconds t(1000);
-	//std::this_thread::sleep_for(t);
-	//task.Close();
+// 	CellTaskServer task;
+// 	task.Start(1);
+// 	std::chrono::milliseconds t(1000);
+// 	std::this_thread::sleep_for(t);
+// 	task.Close();
 
 	printf("任务结束.\n");
 	return 0;

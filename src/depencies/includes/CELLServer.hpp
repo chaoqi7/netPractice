@@ -22,6 +22,7 @@ public:
 private:
 	void OnRun();
 	void Close();
+	void CleanClients();
 	//当前 socket 触发了可读
 	void ReadData(fd_set& fdRead);
 	//接收数据
@@ -55,7 +56,7 @@ private:
 	bool _clientChange = true;
 	//是否在运行
 	bool _bRun = false;
-	bool _bWaitExit = true;
+	CELLSemaphore _semaphore;
 };
 
 inline CellServer::CellServer(int id, INetEvent * netEvent)
@@ -178,7 +179,8 @@ inline void CellServer::OnRun()
 		//定时任务
 		CheckTime();
 	}
-	_bWaitExit = false;
+	CleanClients();
+	_semaphore.Wakeup();
 	printf("CellServer %d::OnRun end\n", _id);
 }
 
@@ -188,27 +190,27 @@ inline void CellServer::Close()
 	if (_bRun)
 	{		
 		_cellSendServer.Close();
-		_bRun = false;
 		printf("CellServer %d::Close clean...\n", _id);
-		while (_bWaitExit)
-		{
-			std::chrono::milliseconds t(1);
-			std::this_thread::sleep_for(t);
-		}
-		//关闭所有的客户端连接
-		for (int n = 0; n < _clients.size(); n++)
-		{
-			delete _clients[n];
-		}
-		_clients.clear();
-
-		for (int n = 0; n < _clientsBuf.size(); n++)
-		{
-			delete _clientsBuf[n];
-		}
-		_clientsBuf.clear();
+		_bRun = false;		
+		_semaphore.Wait();
 	}
 	printf("CellServer %d::Close end\n", _id);
+}
+
+inline void CellServer::CleanClients()
+{
+	//关闭所有的客户端连接
+	for (int n = 0; n < _clients.size(); n++)
+	{
+		delete _clients[n];
+	}
+	_clients.clear();
+
+	for (int n = 0; n < _clientsBuf.size(); n++)
+	{
+		delete _clientsBuf[n];
+	}
+	_clientsBuf.clear();
 }
 
 inline void CellServer::ReadData(fd_set & fdRead)
