@@ -7,6 +7,7 @@
 #include "CELLTimeStamp.hpp"
 #include "CELLClient.hpp"
 #include "CELLServer.hpp"
+#include "CELLThread.hpp"
 
 class EasyTcpServer : public INetEvent
 {
@@ -19,10 +20,6 @@ public:
 	int Listen(int backlog);
 	//关闭连接
 	void Close();
-	//循环执行任务（当前使用select)
-	bool OnRun();
-	//是否运行
-	bool IsRun();
 	//创建工作子线程
 	void Start(int cellServerCount = 1);
 public:
@@ -44,6 +41,10 @@ public:
 		_msgCount++;
 		//printf("EasyTcpServer OnNetMsg.......\n");
 	}
+	void OnNetRecv(CELLClient* pClient) override
+	{
+		_recvCount++;
+	}
 private:
 	//初始化 socket
 	void InitSocket();
@@ -51,15 +52,19 @@ private:
 	int Accept();
 	//添加新客户端到子线程
 	void AddClient2CellServer(CELLClient* pClient);
+	//工作函数
+	void OnRun(CELLThread* pThread);
 	void time4msg();
 private:
 	SOCKET _sock;
 	//子线程队列
 	std::vector<CellServer*> _cellServers;
 	CELLTimeStamp _tTime;
+	CELLThread _thread;
 protected:
 	std::atomic<int> _clientCount = 0;
 	std::atomic<int> _msgCount = 0;
+	std::atomic<int> _recvCount = 0;
 };
 
 EasyTcpServer::EasyTcpServer()
@@ -74,7 +79,7 @@ EasyTcpServer::~EasyTcpServer()
 
 void EasyTcpServer::InitSocket()
 {
-	if (IsRun())
+	if (_sock != INVALID_SOCKET)
 	{
 		printf("InitSocket 关闭掉旧的 socket=%d\n", (int)_sock);
 		Close();
@@ -98,7 +103,7 @@ void EasyTcpServer::InitSocket()
 
 inline int EasyTcpServer::Bind(const char * ip, unsigned short port)
 {
-	if (!IsRun())
+	if (_sock == INVALID_SOCKET)
 	{
 		InitSocket();
 	}
@@ -125,7 +130,7 @@ inline int EasyTcpServer::Bind(const char * ip, unsigned short port)
 int EasyTcpServer::Listen(int backlog)
 {
 	int ret = SOCKET_ERROR;
-	if (IsRun())
+	if (_sock != INVALID_SOCKET)
 	{
 		ret = listen(_sock, backlog);
 		if (SOCKET_ERROR == ret)
@@ -162,7 +167,8 @@ int EasyTcpServer::Accept()
 void EasyTcpServer::Close()
 {
 	printf("EasyTcpServer::Close start\n");
-	if (IsRun())
+	_thread.Close();
+	if (_sock != INVALID_SOCKET)
 	{
 		for (auto ser : _cellServers)
 		{
@@ -182,51 +188,52 @@ void EasyTcpServer::Close()
 	printf("EasyTcpServer::Close end\n");
 }
 
-bool EasyTcpServer::IsRun()
+void EasyTcpServer::OnRun(CELLThread* pThread)
 {
-	return _sock != INVALID_SOCKET;
-}
-
-bool EasyTcpServer::OnRun()
-{
-	time4msg();
-	fd_set fdRead;
-	FD_ZERO(&fdRead);
-	//把服务器 socket 加入监听
-	FD_SET(_sock, &fdRead);
-	/*
-	NULL:一直阻塞
-	timeval 只能精确到秒
-	*/
-	timeval t = { 0, 1 };
-	int ret = select((int)_sock + 1, &fdRead, nullptr, nullptr, &t);
-	if (SOCKET_ERROR == ret)
+	while (pThread->IsRun())
 	{
-		printf("select error.\n");
-		Close();
-		return false;
-	}
-	else if (0 == ret) {
-		//printf("select timeout.\n");
-		//continue;
-	}
-	if (FD_ISSET(_sock, &fdRead))
-	{
-		FD_CLR(_sock, &fdRead);
-		Accept();
-	}
+		time4msg();
+		fd_set fdRead;
+		FD_ZERO(&fdRead);
+		//把服务器 socket 加入监听
+		FD_SET(_sock, &fdRead);
+		/*
+		NULL:一直阻塞
+		timeval 只能精确到秒
+		*/
+		timeval t = { 0, 1 };
+		int ret = select((int)_sock + 1, &fdRead, nullptr, nullptr, &t);
+		if (SOCKET_ERROR == ret)
+		{
+			printf("EasyTcpServer::OnRun select error.\n");
+			pThread->Exit();
+			break;
+		}
+		else if (0 == ret) {
+			//printf("select timeout.\n");
+			//continue;
+		}
 
-	return true;
+		if (FD_ISSET(_sock, &fdRead))
+		{
+			FD_CLR(_sock, &fdRead);
+			Accept();
+		}
+	}
 }
 
 inline void EasyTcpServer::Start(int cellServerCount)
 {
 	for (int n = 0; n < cellServerCount; n++)
 	{
-		auto ser = new CellServer(n+1, this);
+		auto ser = new CellServer(n + 1, this);
 		_cellServers.push_back(ser);
 		ser->Start();
 	}
+
+	_thread.Start(nullptr,[this](CELLThread* pThread){
+		OnRun(pThread);
+	}, nullptr);
 }
 
 inline void EasyTcpServer::AddClient2CellServer(CELLClient * pClient)
@@ -248,10 +255,11 @@ inline void EasyTcpServer::time4msg()
 	auto t = _tTime.getElapseTimeInSeconds();
 	if (t > 1.0)
 	{
-		printf("time<%lf>, thread<%d>, clients<%d>, msg<%d>\n",
-			t, (int)_cellServers.size(), (int)_clientCount, (int)_msgCount);
+		printf("time<%lf>, thread<%d>, clients<%d>, recv<%d>, msg<%d>\n",
+			t, (int)_cellServers.size(), (int)_clientCount, (int)_recvCount, (int)_msgCount);
 		_tTime.update();
 		_msgCount = 0;
+		_recvCount = 0;
 	}
 }
 #endif // !_EASY_TCP_SERVER_HPP_

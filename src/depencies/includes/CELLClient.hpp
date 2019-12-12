@@ -22,23 +22,24 @@ public:
 	char* RecvBuf();
 	//发送消息
 	int SendData(netmsg_DataHeader* pHeader);
+	//立即发送数据
+	int SendDataReal();
 	//重置心跳
 	void ResetDTHeart();
 	//检查心跳
 	bool CheckHeart(long long dt);
 	//检测定时发送
-	int CheckSend(long long dt);
+	bool CheckSend(long long dt);
 public:
 	void SetServerID(int serverID);
 private:
 	//重置发送计时
 	void ResetDTSend();
-	//立刻发送发送缓冲区数据
-	int FlushSendBuf();
 	//关闭当前客户端的 socket
 	void Close();
 private:
 	SOCKET _cSock = INVALID_SOCKET;
+	//缓冲区的控制根据业务需求的差异而调整
 	//接收消息缓冲区
 	char _szRecvBuf[RECV_BUF_SIZE] = {};
 	//接收消息缓冲区位置
@@ -60,6 +61,8 @@ CELLClient::CELLClient(SOCKET cSock)
 	static int n = 1;
 	_id = n++;
 	this->_cSock = cSock;
+	ResetDTHeart();
+	ResetDTSend();
 }
 
 CELLClient::~CELLClient()
@@ -106,41 +109,17 @@ inline int CELLClient::SendData(netmsg_DataHeader * pHeader)
 	int ret = SOCKET_ERROR;
 	int nSendLen = pHeader->dataLength;
 	const char* pSendData = (const char*)pHeader;
-
-	while (true)
+	
+	if ((_lastSendPos + nSendLen) <= SEND_BUF_SIZE)
 	{
-		if ((_lastSendPos + nSendLen) >= SEND_BUF_SIZE)
-		{
-			int nCopyLen = SEND_BUF_SIZE - _lastSendPos;
-			if (nCopyLen > 0)
-			{
-				//复制数据
-				memcpy(_szSendBuf + _lastSendPos, pSendData, nCopyLen);
-				//修正位置
-				pSendData += nCopyLen;
-				nSendLen -= nCopyLen;
-			}
-
-			//发送数据
-			ret = send(_cSock, _szSendBuf, SEND_BUF_SIZE, 0);
-			//清空缓冲区
-			_lastSendPos = 0;
-			ResetDTSend();
-			if (SOCKET_ERROR == ret)
-			{
-				printf("sock=%d sendData fail.\n", (int)_cSock);
-				return ret;
-			}
-		}
-		else {
-			//消息没有达到缓冲区最大，就只是复制数据
-			memcpy(_szSendBuf + _lastSendPos, pSendData, nSendLen);
-			_lastSendPos += nSendLen;
-			ret = nSendLen;
-			break;
-		}
+		//消息没有达到缓冲区最大，就只是复制数据
+		memcpy(_szSendBuf + _lastSendPos, pSendData, nSendLen);
+		_lastSendPos += nSendLen;
+		ret = nSendLen;
 	}
-
+	else {
+		printf("###CELLClient %d::SendData _lastSendPos:%d, nSendLen:%d.\n",_id, _lastSendPos, nSendLen);
+	}
 	return ret;
 }
 
@@ -165,13 +144,13 @@ inline void CELLClient::ResetDTSend()
 	_dtSend = 0;
 }
 
-inline int CELLClient::CheckSend(long long dt)
+inline bool CELLClient::CheckSend(long long dt)
 {
 	_dtSend += dt;
 	if (_dtSend >= FLUSH_SEND_BUF_2_CLIENT_TIME)
 	{
 		//printf("CheckSend sock=%d, time=%lld\n", (int)_cSock, _dtSend);
-		FlushSendBuf();
+		SendDataReal();
 		ResetDTSend();
 		return true;
 	}
@@ -183,10 +162,10 @@ inline void CELLClient::SetServerID(int serverID)
 	_serverID = serverID;
 }
 
-inline int CELLClient::FlushSendBuf()
+inline int CELLClient::SendDataReal()
 {
 	int ret = 0;
-	if (_lastSendPos > 0)
+	if (_lastSendPos > 0 && _cSock != INVALID_SOCKET)
 	{
 		//发送数据
 		ret = send(_cSock, _szSendBuf, _lastSendPos, 0);
@@ -194,11 +173,12 @@ inline int CELLClient::FlushSendBuf()
 		_lastSendPos = 0;
 		if (SOCKET_ERROR == ret)
 		{
-			printf("sock=%d FlushSendBuf fail.\n", (int)_cSock);			
-		}		
+			printf("sock=%d SendDataReal fail.\n", (int)_cSock);
+		}
 	}
-
+	ResetDTSend();
 	return ret;
 }
+
 
 #endif // _CELL_CLIENT_HPP_

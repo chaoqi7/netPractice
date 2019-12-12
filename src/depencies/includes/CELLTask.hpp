@@ -2,23 +2,18 @@
 #define _CELL_TASK_H_
 
 #include <list>
-#include <thread>
-#include <mutex>
-#include <functional>
-#include "CELLSemaphore.hpp"
+#include "CELLThread.hpp"
 //1:1 一个接收线程，对应一个发送线程
 //生产者-消费者模式调度
 class CellTaskServer
 {
 	typedef std::function<void()> CellTask;
 public:
-	CellTaskServer();
-	~CellTaskServer();
 	void AddTask(CellTask task);
 	void Start(int id);
 	void Close();
 private:
-	void OnRun();
+	void OnRun(CELLThread* pThread);
 private:
 	//正在处理的任务列表
 	std::list<CellTask> _tasks;
@@ -27,17 +22,10 @@ private:
 	std::mutex _mutex;
 	//仅仅为了测试
 	int _id = -1;
-	bool _bRun = false;
-	CELLSemaphore _semaphore;
+	//子线程
+	CELLThread _thread;
 };
 
-CellTaskServer::CellTaskServer()
-{
-}
-
-CellTaskServer::~CellTaskServer()
-{
-}
 inline void CellTaskServer::AddTask(CellTask task)
 {
 	std::lock_guard<std::mutex> lock(_mutex);
@@ -46,24 +34,20 @@ inline void CellTaskServer::AddTask(CellTask task)
 inline void CellTaskServer::Start(int id)
 {
 	_id = id;
-	_bRun = true;
-	std::thread t(std::mem_fn(&CellTaskServer::OnRun), this);
-	t.detach();
+	_thread.Start(nullptr, [this](CELLThread* pThread) {
+		OnRun(pThread);
+	}, nullptr);
 }
 inline void CellTaskServer::Close()
 {
 	printf("CellTaskServer %d::Close start\n", _id);
-	if (_bRun)
-	{
-		_bRun = false;
-		_semaphore.Wait();
-	}
+	_thread.Close();
 	printf("CellTaskServer %d::Close end\n", _id);
 }
-inline void CellTaskServer::OnRun()
+inline void CellTaskServer::OnRun(CELLThread* pThread)
 {
 	printf("CellTaskServer %d::OnRun start\n", _id);
-	while (_bRun)
+	while (pThread->IsRun())
 	{
 		if (!_tasksBuf.empty())
 		{
@@ -93,7 +77,6 @@ inline void CellTaskServer::OnRun()
 		//清空需要处理的任务列表
 		_tasks.clear();
 	}
-	_semaphore.Wakeup();
 	printf("CellTaskServer %d::OnRun end\n", _id);
 }
 #endif // _CELL_TASK_H_

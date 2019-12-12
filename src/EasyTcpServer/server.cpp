@@ -1,24 +1,6 @@
 ﻿
 #include "EasyTcpServer.hpp"
 #include <thread>
-bool g_bRun = true;
-void cmdThread()
-{
-	while (true)
-	{
-		char cmdBuf[256] = {};
-		scanf("%s", cmdBuf);
-		if (0 == strcmp(cmdBuf, "exit"))
-		{
-			printf("cmdThread need exit.\n");
-			g_bRun = false;
-			break;
-		}
-		else {
-			printf("unknown command, input again.\n");
-		}
-	}
-}
 
 class MyServer : public EasyTcpServer
 {
@@ -45,10 +27,13 @@ public:
 			//printf("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s\n",
 			//	pLogin->dataLength, pLogin->userName, pLogin->passWord);
 			//忽略登录消息的具体数据
-			netmsg_S2C_Login* ret = new netmsg_S2C_Login();
-			pCellServer->AddSendTask(pClient, ret);
-			//netmsg_S2C_Login ret;
-			//pClient->SendData(&ret);
+			//netmsg_S2C_Login* ret = new netmsg_S2C_Login();
+			//pCellServer->AddSendTask(pClient, ret);
+			netmsg_S2C_Login ret;
+			if (SOCKET_ERROR == pClient->SendData(&ret))
+			{
+				printf("send buf full.\n");
+			}
 		}
 		break;
 		case CMD_LOGOUT:
@@ -93,14 +78,20 @@ int main(int argc, char** argv)
 	server.Listen(128);
 	server.Start(4);
 
-	std::thread t1(cmdThread);
-	t1.detach();
-
-	while (g_bRun)
+	while (true)
 	{
-		server.OnRun();
+		char cmdBuf[256] = {};
+		scanf("%s", cmdBuf);
+		if (0 == strcmp(cmdBuf, "exit"))
+		{
+			printf("cmdThread need exit.\n");
+			server.Close();
+			break;
+		}
+		else {
+			printf("unknown command, input again.\n");
+		}
 	}
-	server.Close();
 
 // 	CellTaskServer task;
 // 	task.Start(1);

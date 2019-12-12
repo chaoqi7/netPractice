@@ -6,13 +6,13 @@
 #include "EasyTcpClient.hpp"
 #include "CELLTimeStamp.hpp"
 
-const int g_cCount = 20;
+const int g_cCount = 1000;
 const int g_tCount = 4;
 bool g_bRun = true;
 
 
-std::atomic<int> g_sendCount = 0;
-std::atomic<int> g_readyCount = 0;
+std::atomic<int> g_sendCount(0);
+std::atomic<int> g_readyCount(0);
 
 void cmdThread()
 {
@@ -67,18 +67,23 @@ void sendThread(int id)
 	}
 
 	//pClient->SendData(&login);
-
+	CELLTimeStamp tTime;
+	auto oldTime = tTime.getElapseTimeInSeconds();
 	while (g_bRun)
 	{
 		for (int n = begin; n < end; n++)
 		{
 			if (SOCKET_ERROR != client[n]->SendData((const char*)&login, sizeof(login)))
 				g_sendCount++;
+// 			if (tTime.getElapseTimeInSeconds() - oldTime > 3.0 && n == begin)
+// 			{
+// 				continue;
+// 			}
 			client[n]->OnRun();
 		}
 
-		//std::chrono::milliseconds t(100);
-		//std::this_thread::sleep_for(t);
+// 		std::chrono::milliseconds t(50);
+// 		std::this_thread::sleep_for(t);
 	}
 
 	for (int n = begin; n < end; n++)

@@ -15,6 +15,7 @@ public:
 	//唤醒
 	void Wakeup();
 private:
+	//目的是退出的时候等待工作函数完全结束
 	std::condition_variable _cv;
 	std::mutex _mutex;
 	int _waitNum = 0;

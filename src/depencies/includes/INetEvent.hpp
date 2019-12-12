@@ -13,6 +13,8 @@ public:
 	virtual void OnNetLeave(CELLClient* pClient) = 0;
 	//网络建立
 	virtual void OnNetJoin(CELLClient* pClient) = 0;
+	//调用 recv 
+	virtual void OnNetRecv(CELLClient* pClient) = 0;
 	//网络消息
 	virtual void OnNetMsg(CellServer* pCellServer, CELLClient* pClient, netmsg_DataHeader* pHeader) = 0;
 };
