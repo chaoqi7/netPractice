@@ -15,6 +15,7 @@
 //linux and osx
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <signal.h>
 #define INVALID_SOCKET  (SOCKET)(~0)
 #define SOCKET_ERROR            (-1)
 #define SOCKET int

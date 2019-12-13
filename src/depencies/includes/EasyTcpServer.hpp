@@ -12,7 +12,7 @@
 class EasyTcpServer : public INetEvent
 {
 public:
-	EasyTcpServer();
+	EasyTcpServer(int nSendSize, int nRecvSize);
 	virtual ~EasyTcpServer();
 	//连接远程服务器
 	int Bind(const char* ip, unsigned short port);
@@ -54,6 +54,7 @@ private:
 	void AddClient2CellServer(CELLClient* pClient);
 	//工作函数
 	void OnRun(CELLThread* pThread);
+	//统计包数据
 	void time4msg();
 private:
 	SOCKET _sock;
@@ -61,15 +62,21 @@ private:
 	std::vector<CellServer*> _cellServers;
 	CELLTimeStamp _tTime;
 	CELLThread _thread;
+	//为客户端分配的发送缓冲区大小
+	int _nSendBufSize = 0;
+	//为客户端分配的接收缓冲区大小
+	int _nRecvBufSize = 0;
 protected:
 	std::atomic<int> _clientCount = 0;
 	std::atomic<int> _msgCount = 0;
 	std::atomic<int> _recvCount = 0;
 };
 
-EasyTcpServer::EasyTcpServer()
+EasyTcpServer::EasyTcpServer(int nSendSize, int nRecvSize)
 {
 	_sock = INVALID_SOCKET;
+	_nSendBufSize = nSendSize;
+	_nRecvBufSize = nRecvSize;
 }
 
 EasyTcpServer::~EasyTcpServer()
@@ -86,9 +93,16 @@ void EasyTcpServer::InitSocket()
 	}
 
 #ifdef _WIN32
+	//初始化 socket 2.0 环境
 	WORD ver = MAKEWORD(2, 2);
 	WSADATA dat;
 	WSAStartup(ver, &dat);
+#else
+	//忽略异常信号，默认会导致进程终止
+	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+	{
+		return;
+	}
 #endif
 	//建立socket
 	_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -160,7 +174,7 @@ int EasyTcpServer::Accept()
 		return -1;
 	}
 	//把新客户端 socket 添加到全局数据里面
-	AddClient2CellServer(new CELLClient(cSock));
+	AddClient2CellServer(new CELLClient(cSock, _nSendBufSize, _nRecvBufSize));
 	return 0;
 }
 

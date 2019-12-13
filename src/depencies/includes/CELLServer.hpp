@@ -25,9 +25,9 @@ private:
 	void Close();
 	void CleanClients();
 	//当前 socket 触发了可读
-	void ReadData(fd_set& fdRead);
+	void HandleReadEvent(fd_set& fdRead);
 	//当前 socket 触发了可写
-	void WriteData(fd_set& fdWrite);
+	void HandleWriteEvent(fd_set& fdWrite);
 	//有客户端退出
 	void OnClientLeave(CELLClient* pClient);
 	//接收数据
@@ -145,14 +145,14 @@ inline void CellServer::OnRun(CELLThread* pThread)
 			_clientChange = false;
 			FD_ZERO(&fdRead);
 			//nfds 当前 socket 最大值+1（兼容贝克利套接字）. 在 windows 里面可以设置为 0.
-			_maxSocket = _clients[0]->GetSocketfd();
+			_maxSocket = _clients[0]->getSocketfd();
 			//把全局客户端数据加入可读监听部分
 			for (int n = 0; n < _clients.size(); n++)
 			{
-				FD_SET(_clients[n]->GetSocketfd(), &fdRead);
-				if (_maxSocket < _clients[n]->GetSocketfd())
+				FD_SET(_clients[n]->getSocketfd(), &fdRead);
+				if (_maxSocket < _clients[n]->getSocketfd())
 				{
-					_maxSocket = _clients[n]->GetSocketfd();
+					_maxSocket = _clients[n]->getSocketfd();
 				}
 			}
 			memcpy(&_fdReadBack, &fdRead, sizeof(fd_set));
@@ -180,20 +180,20 @@ inline void CellServer::OnRun(CELLThread* pThread)
 		}
 
 		//处理可读
-		ReadData(fdRead);
+		HandleReadEvent(fdRead);
 		//处理可写
-		WriteData(fdWrite);		
+		HandleWriteEvent(fdWrite);		
 		//定时任务
 		CheckTime();
 	}
 	printf("CellServer %d::OnRun end\n", _id);
 }
 
-inline void CellServer::ReadData(fd_set & fdRead)
+inline void CellServer::HandleReadEvent(fd_set & fdRead)
 {
 	for (int n = 0; n < _clients.size(); n++)
 	{
-		SOCKET curfd = _clients[n]->GetSocketfd();
+		SOCKET curfd = _clients[n]->getSocketfd();
 		if (FD_ISSET(curfd, &fdRead))
 		{
 			FD_CLR(curfd, &fdRead);
@@ -211,11 +211,11 @@ inline void CellServer::ReadData(fd_set & fdRead)
 	}
 }
 
-inline void CellServer::WriteData(fd_set & fdWrite)
+inline void CellServer::HandleWriteEvent(fd_set & fdWrite)
 {
 	for (int n = 0; n < _clients.size(); n++)
 	{
-		SOCKET curfd = _clients[n]->GetSocketfd();
+		SOCKET curfd = _clients[n]->getSocketfd();
 		if (FD_ISSET(curfd, &fdWrite))
 		{
 			FD_CLR(curfd, &fdWrite);
@@ -263,44 +263,23 @@ inline void CellServer::OnClientLeave(CELLClient * pClient)
 
 int CellServer::RecvData(CELLClient* pClient)
 {
-	char* szRecvBuf = pClient->RecvBuf() + pClient->GetLastRecvPos();
-	int nLen = (int)recv(pClient->GetSocketfd(), szRecvBuf, RECV_BUF_SIZE - pClient->GetLastRecvPos(), 0);
+	//读取消息
+	int nLen = pClient->ReadData();
 	if (nLen <= 0)
 	{
-		//printf("客户端<sock=%d>退出，任务结束.\n", (int)pClient->GetSocketfd());
+		//printf("<sock=%d> CellServer::RecvData error.\n", (int)pClient->getSocketfd());
 		return -1;
 	}
+	//统计接收消息次数
 	if (_pNetEvent)
 	{
 		_pNetEvent->OnNetRecv(pClient);
 	}
-	//当前未处理的消息长度 + nLen
-	pClient->SetLastRecvPos(pClient->GetLastRecvPos() + nLen);
-	//是否有一个消息头长度
-	while (pClient->GetLastRecvPos() >= sizeof(netmsg_DataHeader))
+	//是否有一个消息
+	while (pClient->HasMsg())
 	{
-		netmsg_DataHeader* pHeader = (netmsg_DataHeader*)pClient->RecvBuf();
-		//是否有一条真正的消息长度
-		if (pClient->GetLastRecvPos() >= pHeader->dataLength)
-		{
-			//剩余未处理的消息长度
-			int nLeftMsgLen = pClient->GetLastRecvPos() - pHeader->dataLength;
-			//处理消息
-			OnNetMsg(pClient, pHeader);
-			if (nLeftMsgLen > 0)
-			{
-				//未处理的消息前移
-				memcpy(pClient->RecvBuf(), pClient->RecvBuf() + pHeader->dataLength, nLeftMsgLen);
-				//更新未处理消息长度
-				pClient->SetLastRecvPos(nLeftMsgLen);
-			}
-			else {
-				pClient->SetLastRecvPos(0);
-			}
-		}
-		else {
-			break;
-		}
+		OnNetMsg(pClient, pClient->FrontMsg());
+		pClient->PopFrontMsg();
 	}
 
 	return 0;

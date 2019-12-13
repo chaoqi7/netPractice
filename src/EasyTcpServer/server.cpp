@@ -5,6 +5,10 @@
 class MyServer : public EasyTcpServer
 {
 public:
+	MyServer(int nSendSize, int nRecvSize)
+		:EasyTcpServer(nSendSize, nRecvSize)
+	{
+	}
 	void OnNetJoin(CELLClient* pClient) override
 	{
 		EasyTcpServer::OnNetJoin(pClient);
@@ -73,7 +77,7 @@ private:
 
 int main(int argc, char** argv)
 {
-	MyServer server;
+	MyServer server(SEND_BUF_SIZE, RECV_BUF_SIZE);
 	server.Bind(nullptr, 4567);
 	server.Listen(128);
 	server.Start(4);
@@ -102,3 +106,4 @@ int main(int argc, char** argv)
 	printf("任务结束.\n");
 	return 0;
 }
+
