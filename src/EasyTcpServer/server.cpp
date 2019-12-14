@@ -1,6 +1,6 @@
 ﻿
 #include "EasyTcpServer.hpp"
-#include <thread>
+#include "CELLLog.hpp"
 
 class MyServer : public EasyTcpServer
 {
@@ -28,7 +28,7 @@ public:
 		{
 			pClient->ResetDTHeart();
 			netmsg_C2S_Login* pLogin = (netmsg_C2S_Login*)pHeader;
-			//printf("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s\n",
+			//CELLLog::Info("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s\n",
 			//	pLogin->dataLength, pLogin->userName, pLogin->passWord);
 			//忽略登录消息的具体数据
 			//netmsg_S2C_Login* ret = new netmsg_S2C_Login();
@@ -36,14 +36,14 @@ public:
 			netmsg_S2C_Login ret;
 			if (SOCKET_ERROR == pClient->SendData(&ret))
 			{
-				printf("send buf full.\n");
+				CELLLog::Info("send buf full.\n");
 			}
 		}
 		break;
 		case CMD_LOGOUT:
 		{
 			netmsg_C2S_Logout* pLogout = (netmsg_C2S_Logout*)pHeader;
-			//printf("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s\n",
+			//CELLLog::Info("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s\n",
 			//	pLogout->dataLength, pLogout->userName);
 			//忽略登出消息的具体数据
 			//netmsg_S2C_Logout* ret = new netmsg_S2C_Logout();
@@ -61,7 +61,7 @@ public:
 		break;
 		default:
 		{
-			printf("收到未定义消息.\n");
+			CELLLog::Info("收到未定义消息.\n");
 			netmsg_DataHeader* ret = new netmsg_DataHeader();
 			pCellServer->AddSendTask(pClient, ret);
 			//netmsg_DataHeader ret;
@@ -77,10 +77,16 @@ private:
 
 int main(int argc, char** argv)
 {
+	CELLLog::setLogPath("serverlog.txt", "w");
 	MyServer server(SEND_BUF_SIZE, RECV_BUF_SIZE);
 	server.Bind(nullptr, 4567);
 	server.Listen(128);
 	server.Start(4);
+
+	MyServer server2(SEND_BUF_SIZE, RECV_BUF_SIZE);
+	server2.Bind(nullptr, 4568);
+	server2.Listen(128);
+	server2.Start(4);
 
 	while (true)
 	{
@@ -88,12 +94,11 @@ int main(int argc, char** argv)
 		scanf("%s", cmdBuf);
 		if (0 == strcmp(cmdBuf, "exit"))
 		{
-			printf("cmdThread need exit.\n");
-			server.Close();
+			CELLLog::Info("cmdThread need exit.\n");
 			break;
 		}
 		else {
-			printf("unknown command, input again.\n");
+			CELLLog::Info("unknown command, input again.\n");
 		}
 	}
 
@@ -103,7 +108,7 @@ int main(int argc, char** argv)
 // 	std::this_thread::sleep_for(t);
 // 	task.Close();
 
-	printf("任务结束.\n");
+	CELLLog::Info("任务结束.\n");
 	return 0;
 }
 

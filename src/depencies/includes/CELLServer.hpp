@@ -109,7 +109,7 @@ inline void CellServer::AddSendTask(CELLClient * pClient, netmsg_DataHeader * pH
 
 inline void CellServer::OnRun(CELLThread* pThread)
 {
-	printf("CellServer %d::OnRun start\n", _id);
+	CELLLog::Info("CellServer %d::OnRun start\n", _id);
 	while (pThread->IsRun())
 	{
 		if (!_clientsBuf.empty())
@@ -170,12 +170,12 @@ inline void CellServer::OnRun(CELLThread* pThread)
 		int ret = select((int)_maxSocket + 1, &fdRead, &fdWrite, nullptr, &t);
 		if (SOCKET_ERROR == ret)
 		{
-			printf("CellServer %d::OnRun select error.\n", _id);
+			CELLLog::Info("CellServer %d::OnRun select error.\n", _id);
 			pThread->Exit();
 			break;
 		}
 		else if (0 == ret) {
-			//printf("cellServer select timeout.\n");
+			//CELLLog::Info("cellServer select timeout.\n");
 			//continue;
 		}
 
@@ -186,7 +186,7 @@ inline void CellServer::OnRun(CELLThread* pThread)
 		//定时任务
 		CheckTime();
 	}
-	printf("CellServer %d::OnRun end\n", _id);
+	CELLLog::Info("CellServer %d::OnRun end\n", _id);
 }
 
 inline void CellServer::HandleReadEvent(fd_set & fdRead)
@@ -267,7 +267,7 @@ int CellServer::RecvData(CELLClient* pClient)
 	int nLen = pClient->ReadData();
 	if (nLen <= 0)
 	{
-		//printf("<sock=%d> CellServer::RecvData error.\n", (int)pClient->getSocketfd());
+		//CELLLog::Info("<sock=%d> CellServer::RecvData error.\n", (int)pClient->getSocketfd());
 		return -1;
 	}
 	//统计接收消息次数
@@ -295,10 +295,10 @@ void CellServer::OnNetMsg(CELLClient* pClient, netmsg_DataHeader * pHeader)
 
 inline void CellServer::Close()
 {
-	printf("CellServer %d::Close start\n", _id);
+	CELLLog::Info("CellServer %d::Close start\n", _id);
 	_cellSendServer.Close();
 	_thread.Close();
-	printf("CellServer %d::Close end\n", _id);
+	CELLLog::Info("CellServer %d::Close end\n", _id);
 }
 
 inline void CellServer::CleanClients()

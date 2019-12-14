@@ -24,6 +24,7 @@
 #include <stdio.h>
 
 #include "NetMsg.h"
+#include "CELLLog.hpp"
 
 
 

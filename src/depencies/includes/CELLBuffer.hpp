@@ -60,7 +60,7 @@ inline int CELLBuffer::push(const char * pData, int nLen)
 		return nLen;
 	}
 	else {
-		printf("############CELLBUFFER push.###ERROR FULL###.nLast=%d, nCapacity=%d, nLen=%d\n",
+		CELLLog::Info("###CELLBUFFER push.ERROR FULL.nLast=%d, nCapacity=%d, nLen=%d\n",
 			_nLast, _nCapacity, nLen);
 	}
 

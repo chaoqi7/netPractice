@@ -6,7 +6,7 @@
 #include "EasyTcpClient.hpp"
 #include "CELLTimeStamp.hpp"
 
-const int g_cCount = 10000;
+const int g_cCount = 100;
 const int g_tCount = 4;
 bool g_bRun = true;
 
@@ -48,7 +48,7 @@ void sendThread(int id)
 
 	for (int n = begin; n < end; n++)
 	{
-		client[n]->Connect("127.0.0.1", 4567);
+		client[n]->Connect("192.168.3.248", 4567);
 		//printf("Connect=%d\n", n);
 	}
 

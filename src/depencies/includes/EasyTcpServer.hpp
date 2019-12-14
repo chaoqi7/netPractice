@@ -8,6 +8,7 @@
 #include "CELLClient.hpp"
 #include "CELLServer.hpp"
 #include "CELLThread.hpp"
+#include "CELLNetWork.hpp"
 
 class EasyTcpServer : public INetEvent
 {
@@ -27,19 +28,19 @@ public:
 	void OnNetJoin(CELLClient* pClient) override
 	{
 		_clientCount++;
-		//printf("EasyTcpServer OnNetJoin.......\n");
+		//CELLLog::Info("EasyTcpServer OnNetJoin.......\n");
 	}
 
 	void OnNetLeave(CELLClient* pClient) override
 	{
 		_clientCount--;
-		//printf("EasyTcpServer OnNetLeave.......\n");
+		//CELLLog::Info("EasyTcpServer OnNetLeave.......\n");
 	}
 
 	void OnNetMsg(CellServer* pCellServer, CELLClient* pClient, netmsg_DataHeader* pHeader) override
 	{
 		_msgCount++;
-		//printf("EasyTcpServer OnNetMsg.......\n");
+		//CELLLog::Info("EasyTcpServer OnNetMsg.......\n");
 	}
 	void OnNetRecv(CELLClient* pClient) override
 	{
@@ -67,9 +68,9 @@ private:
 	//为客户端分配的接收缓冲区大小
 	int _nRecvBufSize = 0;
 protected:
-	std::atomic<int> _clientCount = 0;
-	std::atomic<int> _msgCount = 0;
-	std::atomic<int> _recvCount = 0;
+	std::atomic<int> _clientCount{ 0 };
+	std::atomic<int> _msgCount{ 0 };
+	std::atomic<int> _recvCount{ 0 };
 };
 
 EasyTcpServer::EasyTcpServer(int nSendSize, int nRecvSize)
@@ -88,30 +89,19 @@ void EasyTcpServer::InitSocket()
 {
 	if (_sock != INVALID_SOCKET)
 	{
-		printf("InitSocket 关闭掉旧的 socket=%d\n", (int)_sock);
+		CELLLog::Info("InitSocket 关闭掉旧的 socket=%d\n", (int)_sock);
 		Close();
 	}
 
-#ifdef _WIN32
-	//初始化 socket 2.0 环境
-	WORD ver = MAKEWORD(2, 2);
-	WSADATA dat;
-	WSAStartup(ver, &dat);
-#else
-	//忽略异常信号，默认会导致进程终止
-	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-	{
-		return;
-	}
-#endif
+	CELLNetWork::Init();
 	//建立socket
 	_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (INVALID_SOCKET == _sock)
 	{
-		printf("绑定端口失败.\n");
+		CELLLog::Info("绑定端口失败.\n");
 	}
 	else {
-		printf("绑定 socket=%d 成功.\n", (int)_sock);
+		CELLLog::Info("绑定 socket=%d 成功.\n", (int)_sock);
 	}
 }
 
@@ -132,11 +122,11 @@ inline int EasyTcpServer::Bind(const char * ip, unsigned short port)
 	int ret = bind(_sock, (sockaddr*)&_sAddr, sizeof(_sAddr));
 	if (SOCKET_ERROR == ret)
 	{
-		printf("绑定<%s, %d>错误.\n", ip, port);
+		CELLLog::Info("绑定<%s, %d>错误.\n", ip, port);
 		return -1;
 	}
 	else {
-		printf("绑定<%s, %d>成功.\n", ip, port);
+		CELLLog::Info("绑定<%s, %d>成功.\n", ip, port);
 	}
 	return ret;
 }
@@ -149,10 +139,10 @@ int EasyTcpServer::Listen(int backlog)
 		ret = listen(_sock, backlog);
 		if (SOCKET_ERROR == ret)
 		{
-			printf("监听网络<socket=%d>端口错误.\n", (int)_sock);
+			CELLLog::Info("监听网络<socket=%d>端口错误.\n", (int)_sock);
 		}
 		else {
-			printf("监听网络<socket=%d>端口成功.\n", (int)_sock);
+			CELLLog::Info("监听网络<socket=%d>端口成功.\n", (int)_sock);
 		}
 	}
 
@@ -170,7 +160,7 @@ int EasyTcpServer::Accept()
 	SOCKET cSock = accept(_sock, (sockaddr*)&_cAddr, &_cAddrLen);
 	if (INVALID_SOCKET == cSock)
 	{
-		printf("接受到无效客户端SOCKET\n");
+		CELLLog::Info("接受到无效客户端SOCKET\n");
 		return -1;
 	}
 	//把新客户端 socket 添加到全局数据里面
@@ -180,7 +170,7 @@ int EasyTcpServer::Accept()
 
 void EasyTcpServer::Close()
 {
-	printf("EasyTcpServer::Close start\n");
+	CELLLog::Info("EasyTcpServer::Close start\n");
 	_thread.Close();
 	if (_sock != INVALID_SOCKET)
 	{
@@ -192,14 +182,13 @@ void EasyTcpServer::Close()
 #ifdef _WIN32
 		//断开 socket 连接
 		closesocket(_sock);
-		WSACleanup();
 #else
 		//断开 socket 连接
 		close(_sock);
 #endif
 		_sock = INVALID_SOCKET;
 	}
-	printf("EasyTcpServer::Close end\n");
+	CELLLog::Info("EasyTcpServer::Close end\n");
 }
 
 void EasyTcpServer::OnRun(CELLThread* pThread)
@@ -219,12 +208,12 @@ void EasyTcpServer::OnRun(CELLThread* pThread)
 		int ret = select((int)_sock + 1, &fdRead, nullptr, nullptr, &t);
 		if (SOCKET_ERROR == ret)
 		{
-			printf("EasyTcpServer::OnRun select error.\n");
+			CELLLog::Info("EasyTcpServer::OnRun select error.\n");
 			pThread->Exit();
 			break;
 		}
 		else if (0 == ret) {
-			//printf("select timeout.\n");
+			//CELLLog::Info("select timeout.\n");
 			//continue;
 		}
 
@@ -269,7 +258,7 @@ inline void EasyTcpServer::time4msg()
 	auto t = _tTime.getElapseTimeInSeconds();
 	if (t > 1.0)
 	{
-		printf("time<%lf>, thread<%d>, clients<%d>, recv<%d>, msg<%d>\n",
+		CELLLog::Info("time<%lf>, thread<%d>, clients<%d>, recv<%d>, msg<%d>\n",
 			t, (int)_cellServers.size(), (int)_clientCount, (int)_recvCount, (int)_msgCount);
 		_tTime.update();
 		_msgCount = 0;

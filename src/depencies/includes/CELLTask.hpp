@@ -77,6 +77,12 @@ inline void CellTaskServer::OnRun(CELLThread* pThread)
 		//清空需要处理的任务列表
 		_tasks.clear();
 	}
+	//退出的收，如果缓冲队列里面还有未处理的任务，则处理一下
+	for (auto pTask : _tasksBuf)
+	{
+		pTask();
+	}
+	_tasksBuf.clear();
 	printf("CellTaskServer %d::OnRun end\n", _id);
 }
 #endif // _CELL_TASK_H_

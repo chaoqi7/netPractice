@@ -57,7 +57,7 @@ inline int CELLRecvBuffer::read4socket(SOCKET sockfd)
 		int nLen = (int)recv(sockfd, _pBuf + _nLast, nLeft, 0);
 		if (nLen <= 0)
 		{
-			printf("<sock=%d> CELLRecvBuffer::read4socket error.\n", (int)sockfd);
+			CELLLog::Info("<sock=%d> CELLRecvBuffer::read4socket error.\n", (int)sockfd);
 			return nLen;
 		}
 		//扩大数据长度

@@ -33,7 +33,7 @@ inline int CELLSendBuffer::Write2Socket(SOCKET sockfd)
 		_nLast = 0;
 		if (SOCKET_ERROR == ret)
 		{
-			printf("sock=%d Write2Socket fail.\n", (int)sockfd);
+			CELLLog::Info("sock=%d Write2Socket fail.\n", (int)sockfd);
 		}
 	}
 	return ret;
