@@ -12,6 +12,8 @@ public:
 	int Write2Socket(SOCKET sockfd);
 	//写入一条消息
 	int WriteData(netmsg_DataHeader* pHeader);
+	//
+	bool NeedWrite();
 };
 
 CELLSendBuffer::CELLSendBuffer(int nSize)
@@ -41,5 +43,9 @@ inline int CELLSendBuffer::Write2Socket(SOCKET sockfd)
 inline int CELLSendBuffer::WriteData(netmsg_DataHeader * pHeader)
 {
 	return push((const char*)pHeader, pHeader->dataLength);
+}
+inline bool CELLSendBuffer::NeedWrite()
+{
+	return _nLast > 0;
 }
 #endif // _CELL_SEND_BUFFER_H_

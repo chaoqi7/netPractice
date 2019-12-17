@@ -137,6 +137,9 @@ inline void CellServer::OnRun(CELLThread* pThread)
 			continue;
 		}
 
+		//定时任务
+		CheckTime();
+
 		fd_set fdRead;
 		fd_set fdWrite;
 
@@ -161,13 +164,33 @@ inline void CellServer::OnRun(CELLThread* pThread)
 			memcpy(&fdRead, &_fdReadBack, sizeof(fd_set));
 		}
 
-		memcpy(&fdWrite, &fdRead, sizeof(fd_set));
+		//检查需要可写数据到客户端
+		bool bNeedWrite = false;
+		FD_ZERO(&fdWrite);
+		for (int n = 0; n < _clients.size(); n++)
+		{
+			if (_clients[n]->NeedWrite())
+			{
+				bNeedWrite = true;
+				FD_SET(_clients[n]->getSocketfd(), &fdWrite);
+			}
+		}
+
+		//memcpy(&fdWrite, &fdRead, sizeof(fd_set));
 		/*
 		NULL:一直阻塞
 		timeval 只能精确到秒
 		*/
 		timeval t = { 0, 1 };
-		int ret = select((int)_maxSocket + 1, &fdRead, &fdWrite, nullptr, &t);
+		int ret = 0;
+		if (bNeedWrite)
+		{
+			ret = select((int)_maxSocket + 1, &fdRead, &fdWrite, nullptr, &t);
+		}
+		else {
+			ret = select((int)_maxSocket + 1, &fdRead, nullptr, nullptr, &t);
+		}
+		
 		if (SOCKET_ERROR == ret)
 		{
 			CELLLog::Info("CellServer %d::OnRun select error.\n", _id);
@@ -176,15 +199,13 @@ inline void CellServer::OnRun(CELLThread* pThread)
 		}
 		else if (0 == ret) {
 			//CELLLog::Info("cellServer select timeout.\n");
-			//continue;
+			continue;
 		}
 
 		//处理可读
 		HandleReadEvent(fdRead);
 		//处理可写
-		HandleWriteEvent(fdWrite);		
-		//定时任务
-		CheckTime();
+		HandleWriteEvent(fdWrite);
 	}
 	CELLLog::Info("CellServer %d::OnRun end\n", _id);
 }
@@ -216,7 +237,7 @@ inline void CellServer::HandleWriteEvent(fd_set & fdWrite)
 	for (int n = 0; n < _clients.size(); n++)
 	{
 		SOCKET curfd = _clients[n]->getSocketfd();
-		if (FD_ISSET(curfd, &fdWrite))
+		if (_clients[n]->NeedWrite() && FD_ISSET(curfd, &fdWrite))
 		{
 			FD_CLR(curfd, &fdWrite);
 			if (SOCKET_ERROR == _clients[n]->SendDataReal())

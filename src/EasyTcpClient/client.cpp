@@ -6,13 +6,54 @@
 #include "EasyTcpClient.hpp"
 #include "CELLTimeStamp.hpp"
 
-const int g_cCount = 100;
+const int g_cCount = 10000;
 const int g_tCount = 4;
 bool g_bRun = true;
 
 
 std::atomic<int> g_sendCount(0);
 std::atomic<int> g_readyCount(0);
+
+class MyClient : public EasyTcpClient
+{
+public:
+	void OnNetMsg(netmsg_DataHeader* pHeader) override 
+	{
+		switch (pHeader->cmd)
+		{
+		case CMD_S2C_LOGIN:
+		{
+			netmsg_S2C_Login* pLoginResult = (netmsg_S2C_Login*)pHeader;
+			//CELLLog::Info("<sockt=%d>收到服务器返回消息 CMD_LOGIN_RESULT, Result:%d, len:%d\n",
+			//	(int)_sock, pLoginResult->result, pLoginResult->dataLength);
+		}
+		break;
+		case CMD_S2C_LOGOUT:
+		{
+			netmsg_S2C_Logout* pLogoutResult = (netmsg_S2C_Logout*)pHeader;
+			//CELLLog::Info("<sockt=%d>收到服务器返回消息 CMD_LOGINOUT_RESULT, Result:%d, len:%d\n",
+			//	(int)_sock, pLogoutResult->result, pLogoutResult->dataLength);
+		}
+		break;
+		case CMD_S2C_NEW_USER_JOIN:
+		{
+			netmsg_S2C_NewUserJoin* pUserJoin = (netmsg_S2C_NewUserJoin*)pHeader;
+			//CELLLog::Info("<sockt=%d>收到服务器返回消息 CMD_NEW_USER_JOIN, sock:%d, len:%d\n",
+			//	(int)_sock, pUserJoin->sock, pUserJoin->dataLength);
+		}
+		break;
+		case CMD_S2C_ERROR:
+		{
+			CELLLog::Info("CMD_ERROR...\n");
+		}
+		break;
+		default:
+			CELLLog::Info("收到未定义消息.\n");
+			break;
+		}
+	}
+};
+
 
 void cmdThread()
 {
@@ -22,12 +63,12 @@ void cmdThread()
 		scanf("%s", cmdBuf);
 		if (0 == strcmp(cmdBuf, "exit"))
 		{
-			printf("cmdThread need exit.\n");
+			CELLLog::Info("cmdThread need exit.\n");
 			g_bRun = false;
 			break;
 		}
 		else {
-			printf("unknown command, input again.\n");
+			CELLLog::Info("unknown command, input again.\n");
 		}
 	}	
 }
@@ -39,17 +80,17 @@ void sendThread(int id)
 	int begin = (id - 1)*cNum;
 	int end = id * cNum;
 
-	printf("sendThread id=%d, begin=%d, end=%d\n", id, begin, end);
+	CELLLog::Info("sendThread id=%d, begin=%d, end=%d\n", id, begin, end);
 
 	for (int n = begin; n < end; n++)
 	{
-		client[n] = new EasyTcpClient();
+		client[n] = new MyClient();
 	}
 
 	for (int n = begin; n < end; n++)
 	{
 		client[n]->Connect("192.168.3.248", 4567);
-		//printf("Connect=%d\n", n);
+		//CELLLog::Info("Connect=%d\n", n);
 	}
 
 	g_readyCount++;
@@ -59,8 +100,9 @@ void sendThread(int id)
 		std::this_thread::sleep_for(t);
 	}
 
-	netmsg_C2S_Login login[1] = {};
-	for (int n = 0; n < 1; n++)
+	const int msgNum = 1;
+	netmsg_C2S_Login login[msgNum] = {};
+	for (int n = 0; n < msgNum; n++)
 	{
 		strcpy(login[n].userName, "chaoqi");
 		strcpy(login[n].passWord, "chaoqimima");
@@ -73,12 +115,13 @@ void sendThread(int id)
 	{
 		for (int n = begin; n < end; n++)
 		{
-			if (SOCKET_ERROR != client[n]->SendData((const char*)&login, sizeof(login)))
-				g_sendCount++;
-// 			if (tTime.getElapseTimeInSeconds() - oldTime > 3.0 && n == begin)
-// 			{
-// 				continue;
-// 			}
+			for (int k = 0; k < msgNum; k++)
+			{
+				if (SOCKET_ERROR != client[n]->SendData(&login[k]))
+				{
+				}
+			}
+			g_sendCount++;
 			client[n]->OnRun();
 		}
 
@@ -94,6 +137,7 @@ void sendThread(int id)
 
 int main(int argc, char** argv)
 {
+	CELLLog::setLogPath("clientlog.txt", "w");
 	//UI 线程
 	std::thread t1(cmdThread);
 	t1.detach();
@@ -109,14 +153,14 @@ int main(int argc, char** argv)
 		auto t = tTime.getElapseTimeInSeconds();
 		if (t >= 1.0)
 		{
-			printf("thread<%d>, clients<%d>, time<%lf>, send<%d>\n",
+			CELLLog::Info("thread<%d>, clients<%d>, time<%lf>, send<%d>\n",
 				(int)g_tCount, (int)g_cCount, t, (int)g_sendCount);
 			g_sendCount = 0;
 			tTime.update();
 		}
 	}
 
-	printf("exit the Main Thread.\n");
+	CELLLog::Info("exit the Main Thread.\n");
 	return 0;
 }
 

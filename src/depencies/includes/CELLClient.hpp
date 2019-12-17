@@ -28,7 +28,8 @@ public:
 	netmsg_DataHeader* FrontMsg();
 	//删除第一条消息
 	void PopFrontMsg();
-
+	//检查是否有数据需要写
+	bool NeedWrite();
 	//重置心跳
 	void ResetDTHeart();
 	//检查心跳
@@ -161,6 +162,11 @@ inline netmsg_DataHeader * CELLClient::FrontMsg()
 inline void CELLClient::PopFrontMsg()
 {
 	_recvBuf.popFrontMsg();
+}
+
+inline bool CELLClient::NeedWrite()
+{
+	return _sendBuf.NeedWrite();
 }
 
 

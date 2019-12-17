@@ -31,8 +31,6 @@ public:
 			//CELLLog::Info("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s\n",
 			//	pLogin->dataLength, pLogin->userName, pLogin->passWord);
 			//忽略登录消息的具体数据
-			//netmsg_S2C_Login* ret = new netmsg_S2C_Login();
-			//pCellServer->AddSendTask(pClient, ret);
 			netmsg_S2C_Login ret;
 			if (SOCKET_ERROR == pClient->SendData(&ret))
 			{
@@ -46,26 +44,22 @@ public:
 			//CELLLog::Info("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s\n",
 			//	pLogout->dataLength, pLogout->userName);
 			//忽略登出消息的具体数据
-			//netmsg_S2C_Logout* ret = new netmsg_S2C_Logout();
-			//pCellServer->AddSendTask(pClient, ret);
+			netmsg_S2C_Logout ret;
+			pClient->SendData(&ret);
 		}
 		break;
 		case CMD_C2S_HEART:
 		{
 			pClient->ResetDTHeart();
-			netmsg_S2C_Heart* ret = new netmsg_S2C_Heart();
-			pCellServer->AddSendTask(pClient, ret);
-			//netmsg_S2C_Heart ret;
-			//pClient->SendData(&ret);
+			netmsg_S2C_Heart ret;
+			pClient->SendData(&ret);
 		}
 		break;
 		default:
 		{
 			CELLLog::Info("收到未定义消息.\n");
-			netmsg_DataHeader* ret = new netmsg_DataHeader();
-			pCellServer->AddSendTask(pClient, ret);
-			//netmsg_DataHeader ret;
-			//pClient->SendData(&ret);
+			netmsg_DataHeader ret;
+			pClient->SendData(&ret);
 		}
 		break;
 		}
@@ -83,10 +77,10 @@ int main(int argc, char** argv)
 	server.Listen(128);
 	server.Start(4);
 
-	MyServer server2(SEND_BUF_SIZE, RECV_BUF_SIZE);
-	server2.Bind(nullptr, 4568);
-	server2.Listen(128);
-	server2.Start(4);
+// 	MyServer server2(SEND_BUF_SIZE, RECV_BUF_SIZE);
+// 	server2.Bind(nullptr, 4568);
+// 	server2.Listen(128);
+// 	server2.Start(4);
 
 	while (true)
 	{
