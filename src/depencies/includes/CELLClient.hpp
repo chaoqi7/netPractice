@@ -6,8 +6,7 @@
 #define FLUSH_SEND_BUF_2_CLIENT_TIME 200
 
 #include "CELL.hpp"
-#include "CELLSendBuffer.hpp"
-#include "CELLRecvBuffer.hpp"
+#include "CELLBuffer.hpp"
 
 class CELLClient
 {

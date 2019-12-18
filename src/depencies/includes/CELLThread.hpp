@@ -21,6 +21,13 @@ public:
 	bool IsRun();
 	//在运行函数里面退出，必须调用此函数，避免对信号量的使用导致的死锁
 	void Exit();
+public:
+	//让当前线程休眠指定的毫秒数
+	static void Sleep(long long dt)
+	{
+		std::chrono::milliseconds t(dt);
+		std::this_thread::sleep_for(t);
+	}
 private:
 	//子线程工作函数
 	void OnWork();
