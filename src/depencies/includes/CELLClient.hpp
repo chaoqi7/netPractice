@@ -6,7 +6,8 @@
 #define FLUSH_SEND_BUF_2_CLIENT_TIME 200
 
 #include "CELL.hpp"
-#include "CELLBuffer.hpp"
+#include "CELLReadBuffer.hpp"
+#include "CELLWriteBuffer.hpp"
 
 class CELLClient
 {
@@ -17,6 +18,7 @@ public:
 	SOCKET getSocketfd();
 	//发送消息
 	int SendData(netmsg_DataHeader* pHeader);
+	int SendData(const char* pData, int nLen);
 	//立即发送数据
 	int SendDataReal();
 	//读取数据
@@ -46,9 +48,9 @@ private:
 	SOCKET _cSock = INVALID_SOCKET;
 	//缓冲区的控制根据业务需求的差异而调整
 	//接收消息缓冲区
-	CELLRecvBuffer _recvBuf;
+	CELLReadBuffer _recvBuf;
 	//发送消息缓冲区
-	CELLSendBuffer _sendBuf;
+	CELLWriteBuffer _sendBuf;
 	//心跳计时
 	long long _dtHeart = 0;
 	//定时发送计时
@@ -135,6 +137,11 @@ inline bool CELLClient::CheckSend(long long dt)
 inline int CELLClient::SendData(netmsg_DataHeader * pHeader)
 {
 	return _sendBuf.WriteData(pHeader);
+}
+
+inline int CELLClient::SendData(const char * pData, int nLen)
+{
+	return _sendBuf.WriteData(pData, nLen);
 }
 
 inline int CELLClient::SendDataReal()

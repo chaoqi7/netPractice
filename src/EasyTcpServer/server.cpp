@@ -1,6 +1,8 @@
 ﻿
 #include "EasyTcpServer.hpp"
 #include "CELLLog.hpp"
+#include "CELLReadStream.hpp"
+#include "CELLWriteStream.hpp"
 
 class MyServer : public EasyTcpServer
 {
@@ -24,7 +26,7 @@ public:
 		EasyTcpServer::OnNetMsg(pCellServer, pClient, pHeader);
 		switch (pHeader->cmd)
 		{
-		case CMD_LOGIN:
+		case CMD_C2S_LOGIN:
 		{
 			pClient->ResetDTHeart();
 			netmsg_C2S_Login* pLogin = (netmsg_C2S_Login*)pHeader;
@@ -38,12 +40,12 @@ public:
 			}
 		}
 		break;
-		case CMD_LOGOUT:
+		case CMD_C2S_LOGOUT:
 		{
-			netmsg_C2S_Logout* pLogout = (netmsg_C2S_Logout*)pHeader;
-			//CELLLog::Info("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s\n",
-			//	pLogout->dataLength, pLogout->userName);
-			//忽略登出消息的具体数据
+ 			netmsg_C2S_Logout* pLogout = (netmsg_C2S_Logout*)pHeader;
+// 			//CELLLog::Info("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s\n",
+// 			//	pLogout->dataLength, pLogout->userName);
+// 			//忽略登出消息的具体数据
 			netmsg_S2C_Logout ret;
 			pClient->SendData(&ret);
 		}
@@ -53,6 +55,41 @@ public:
 			pClient->ResetDTHeart();
 			netmsg_S2C_Heart ret;
 			pClient->SendData(&ret);
+		}
+		break;
+		case CMD_C2S_STREAM:
+		{
+			CELLReadStream r(pHeader);
+			auto a2 = r.ReadNetLength();
+			auto a1 = r.ReadNetCMD();
+			auto a3 = r.ReadInt8();
+			auto a4 = r.ReadInt16();
+			auto a5 = r.ReadInt32();
+			auto a6 = r.ReadInt64();
+			auto a7 = r.ReadUInt16();
+			auto a14 = r.ReadFloat();
+			auto a15 = r.ReadDouble();
+			char a8[128] = {};
+			auto a9 = r.ReadArray(a8, 128);
+			char a10[128] = {};
+			auto a11 = r.ReadArray(a10, 128);
+			int a12[128] = {};
+			auto a13 = r.ReadArray(a12, 128);
+
+			CELLWriteStream w;
+			w.WriteNetCMD(CMD_S2C_STREAM);
+			w.WriteInt8(a3);
+			w.WriteInt16(a4);
+			w.WriteInt32(a5);
+			w.WriteInt64(a6);
+			w.WriteUInt16(a7);
+			w.WriteString("server");
+			w.WriteString(a10);
+			w.WriteArray(a12, a13);
+			w.WriteFloat(a14);
+			w.WriteDouble(a15);
+			w.Finish();
+			pClient->SendData(w.Data(), w.Length());
 		}
 		break;
 		default:

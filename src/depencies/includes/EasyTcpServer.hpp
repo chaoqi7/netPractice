@@ -243,7 +243,7 @@ inline void EasyTcpServer::AddClient2CellServer(CELLClient * pClient)
 {
 	//找出最小客户端数据，添加进去
 	CellServer* pMinServer = _cellServers[0];
-	for (int n = 1; n < _cellServers.size(); n++)
+	for (size_t n = 1; n < _cellServers.size(); n++)
 	{
 		if (pMinServer->GetClientCount() > _cellServers[n]->GetClientCount())
 		{

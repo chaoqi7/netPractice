@@ -4,6 +4,7 @@
 #include "CELL.hpp"
 #include "CELLClient.hpp"
 #include "CELLNetWork.hpp"
+#include "CELLWriteStream.hpp"
 
 class EasyTcpClient
 {
@@ -20,7 +21,8 @@ public:
 	bool IsRun();
 	//发送消息
 	int SendData(netmsg_DataHeader* pHeader);
-
+	int SendData(const char* pData, int nLen);
+	int SendData(CELLWriteStream* pStream);
 private:
 	//初始化 socket
 	void InitSocket();
@@ -169,23 +171,41 @@ inline bool EasyTcpClient::OnRun()
 
 inline int EasyTcpClient::SendData(netmsg_DataHeader * pHeader)
 {
-	return _pClient->SendData(pHeader);
+	return SendData((const char*)pHeader, pHeader->dataLength);
+}
+
+inline int EasyTcpClient::SendData(const char * pData, int nLen)
+{
+	if (IsRun())
+	{
+		return _pClient->SendData(pData, nLen);
+	}
+	return 0;
+}
+
+inline int EasyTcpClient::SendData(CELLWriteStream * pStream)
+{
+	return SendData(pStream->Data(), pStream->Length());
 }
 
 inline int EasyTcpClient::RecvData()
 {
-	int nLen = _pClient->ReadData();
-	if (nLen > 0)
+	if (IsRun())
 	{
-		//是否有消息
-		while (_pClient->HasMsg())
+		int nLen = _pClient->ReadData();
+		if (nLen > 0)
 		{
-			OnNetMsg(_pClient->FrontMsg());
-			_pClient->PopFrontMsg();
+			//是否有消息
+			while (_pClient->HasMsg())
+			{
+				OnNetMsg(_pClient->FrontMsg());
+				_pClient->PopFrontMsg();
+			}
 		}
-	}
 
-	return nLen;
+		return nLen;
+	}
+	return 0;
 }
 
 #endif //_EASY_TCP_CLIENT_HPP_

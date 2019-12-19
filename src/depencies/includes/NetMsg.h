@@ -12,13 +12,15 @@
 
 enum CMD
 {
-	CMD_LOGIN,
+	CMD_C2S_LOGIN,
 	CMD_S2C_LOGIN,
-	CMD_LOGOUT,
+	CMD_C2S_LOGOUT,
 	CMD_S2C_LOGOUT,
 	CMD_S2C_NEW_USER_JOIN,
 	CMD_C2S_HEART,
 	CMD_S2C_HEART,
+	CMD_C2S_STREAM,
+	CMD_S2C_STREAM,
 	CMD_S2C_ERROR,
 };
 
@@ -29,8 +31,8 @@ struct netmsg_DataHeader
 		this->dataLength = sizeof(netmsg_DataHeader);
 		this->cmd = CMD_S2C_ERROR;
 	}
-	short dataLength;
-	short cmd;	
+	unsigned short dataLength;
+	unsigned short cmd;
 };
 
 //登录相关
@@ -39,7 +41,7 @@ struct netmsg_C2S_Login : public netmsg_DataHeader
 	netmsg_C2S_Login()
 	{
 		this->dataLength = sizeof(netmsg_C2S_Login);
-		this->cmd = CMD_LOGIN;
+		this->cmd = CMD_C2S_LOGIN;
 	}
 	char userName[32];
 	char passWord[32];
@@ -64,7 +66,7 @@ struct netmsg_C2S_Logout : public netmsg_DataHeader
 	netmsg_C2S_Logout()
 	{
 		this->dataLength = sizeof(netmsg_C2S_Logout);
-		this->cmd = CMD_LOGOUT;
+		this->cmd = CMD_C2S_LOGOUT;
 	}
 	char userName[32];
 };
