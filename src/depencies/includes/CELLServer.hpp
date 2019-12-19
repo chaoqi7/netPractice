@@ -150,7 +150,7 @@ inline void CellServer::OnRun(CELLThread* pThread)
 			//nfds 当前 socket 最大值+1（兼容贝克利套接字）. 在 windows 里面可以设置为 0.
 			_maxSocket = _clients[0]->getSocketfd();
 			//把全局客户端数据加入可读监听部分
-			for (int n = 0; n < _clients.size(); n++)
+			for (size_t n = 0; n < _clients.size(); n++)
 			{
 				FD_SET(_clients[n]->getSocketfd(), &fdRead);
 				if (_maxSocket < _clients[n]->getSocketfd())
@@ -167,7 +167,7 @@ inline void CellServer::OnRun(CELLThread* pThread)
 		//检查需要可写数据到客户端
 		bool bNeedWrite = false;
 		FD_ZERO(&fdWrite);
-		for (int n = 0; n < _clients.size(); n++)
+		for (size_t n = 0; n < _clients.size(); n++)
 		{
 			if (_clients[n]->NeedWrite())
 			{
@@ -212,7 +212,7 @@ inline void CellServer::OnRun(CELLThread* pThread)
 
 inline void CellServer::HandleReadEvent(fd_set & fdRead)
 {
-	for (int n = 0; n < _clients.size(); n++)
+	for (size_t n = 0; n < _clients.size(); n++)
 	{
 		SOCKET curfd = _clients[n]->getSocketfd();
 		if (FD_ISSET(curfd, &fdRead))
@@ -234,7 +234,7 @@ inline void CellServer::HandleReadEvent(fd_set & fdRead)
 
 inline void CellServer::HandleWriteEvent(fd_set & fdWrite)
 {
-	for (int n = 0; n < _clients.size(); n++)
+	for (size_t n = 0; n < _clients.size(); n++)
 	{
 		SOCKET curfd = _clients[n]->getSocketfd();
 		if (_clients[n]->NeedWrite() && FD_ISSET(curfd, &fdWrite))
@@ -258,7 +258,7 @@ void CellServer::CheckTime()
 	auto dt = tNewTime - _oldTime;
 	_oldTime = tNewTime;
 
-	for (int n = 0; n < _clients.size(); n++)
+	for (size_t n = 0; n < _clients.size(); n++)
 	{
 		//定时存活检测
 		if (_clients[n]->CheckHeart(dt))
@@ -325,13 +325,13 @@ inline void CellServer::Close()
 inline void CellServer::CleanClients()
 {
 	//关闭所有的客户端连接
-	for (int n = 0; n < _clients.size(); n++)
+	for (size_t n = 0; n < _clients.size(); n++)
 	{
 		delete _clients[n];
 	}
 	_clients.clear();
 
-	for (int n = 0; n < _clientsBuf.size(); n++)
+	for (size_t n = 0; n < _clientsBuf.size(); n++)
 	{
 		delete _clientsBuf[n];
 	}
