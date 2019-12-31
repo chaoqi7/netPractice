@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class CELLClientNode : CELLNativeTCPClient
 {
@@ -10,6 +11,7 @@ public class CELLClientNode : CELLNativeTCPClient
     // Start is called before the first frame update
     void Start()
     {
+        Debug.Log("Start");
         this.Create();
         if (this.Connect(IP, PORT))
         {
@@ -19,6 +21,18 @@ public class CELLClientNode : CELLNativeTCPClient
         else
         {
             Debug.Log("connect to server fail.");
+        }
+
+        
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        Debug.Log("Update");
+        if (_bConnect)
+        {
+            this.OnRun();
         }
 
         CELLSendStream w = new CELLSendStream();
@@ -32,38 +46,47 @@ public class CELLClientNode : CELLNativeTCPClient
         w.WriteDouble(8.9);
 
         w.WriteString("client");
-        w.WriteString("haha");
+        w.WriteString("start 这是中文编码字符 end");
         int[] arr2 = { 10, 11, 12, 13, 15 };
-        w.WriteInts(arr2);
+        w.WriteInt32s(arr2);
         w.Finish();
 
         this.SendData(w.Array);
     }
 
-    // Update is called once per frame
-    void Update()
+    void OnDestroy()
     {
+        Debug.Log("OnDestroy");
         if (_bConnect)
-        {
-            this.OnRun();
+        {            
+            this.Close();
         }
-        
-        //SendData()
+        _bConnect = false;
     }
 
-    //     void OnDestroy()
-    //     {
-    //         if (_bConnect)
-    //         {
-    //             Debug.Log("OnDestroy");
-    //             this.Close();
-    //         }
-    // 
-    //     }
 
-
-    public override void OnNetMsg(byte[] pData)
+    public override void OnNetMsg(IntPtr pData, int nLen)
     {
-        Debug.Log("reTransform to other." + pData.Length);
+        Debug.Log("CELLClientNode OnNetMsg nLen:" + nLen);
+        CELLRecvStream r = new CELLRecvStream(pData, nLen);
+        Debug.Log(r.ReadNetLength());
+        Debug.Log(r.ReadNetCMD());
+
+        Debug.Log(r.ReadInt8());
+        Debug.Log(r.ReadInt16());
+        Debug.Log(r.ReadInt32());
+        Debug.Log(r.ReadInt64());
+        Debug.Log(r.ReadUInt16());
+
+        Debug.Log(r.ReadString());
+        Debug.Log(r.ReadString());
+
+        Int32[] arr = r.ReadInt32s();
+        for (int n = 0; n < arr.Length; n++)
+        {
+            Debug.Log("arr" + n + "=" + arr[n]);
+        }
+        Debug.Log(r.ReadFloat());
+        Debug.Log(r.ReadDouble());
     }
 }

@@ -132,7 +132,7 @@ public class CELLSendStream
         WriteUInt8(0);
     }
 
-    public void WriteInts(Int32[] data)
+    public void WriteInt32s(Int32[] data)
     {
         //写入元素个数
         WriteUInt32((UInt32)data.Length);

@@ -26,14 +26,12 @@ public class CELLNativeTCPClient : MonoBehaviour
     [MonoPInvokeCallback(typeof(OnNetMsgCallback))]
     public void OnNetMsg(IntPtr csObj, IntPtr pData, int nLen)
     {
-        Debug.Log("C# OnNetMsg length:" + nLen);
+        Debug.Log("Callback OnNetMsg length:" + nLen);
         GCHandle csHandle = GCHandle.FromIntPtr(csObj);
         CELLNativeTCPClient csThisObj = csHandle.Target as CELLNativeTCPClient;
         if (csThisObj)
         {
-            byte[] buff = new byte[nLen];
-            Marshal.Copy(pData, buff, 0, nLen);
-            csThisObj.OnNetMsg(buff);
+            csThisObj.OnNetMsg(pData, nLen);
         }
     }
 
@@ -125,8 +123,8 @@ public class CELLNativeTCPClient : MonoBehaviour
         return CELLNativeTCPClient_SendData(_cppObjectPtr, pData, pData.Length);
     }
 
-    public virtual void OnNetMsg(byte[] pData)
+    public virtual void OnNetMsg(IntPtr pData, int nLen)
     {
-        
+        Debug.Log("CELLNativeTCPClient OnNetMsg nLen=" + nLen);
     }
 }
