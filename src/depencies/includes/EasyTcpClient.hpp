@@ -13,6 +13,8 @@ public:
 	virtual ~EasyTcpClient();
 	//连接远程服务器
 	int Connect(const char* ip, unsigned short port);
+	//初始化 socket
+	void InitSocket(int sendSize, int recvSize);
 	//关闭连接
 	void Close();	
 	//循环执行任务（当前使用select)
@@ -24,8 +26,6 @@ public:
 	int SendData(const char* pData, int nLen);
 	int SendData(CELLWriteStream* pStream);
 private:
-	//初始化 socket
-	void InitSocket();
 	//接收数据
 	int RecvData();
 	//处理消息
@@ -45,7 +45,7 @@ EasyTcpClient::~EasyTcpClient()
 	Close();
 }
 
-inline void EasyTcpClient::InitSocket()
+inline void EasyTcpClient::InitSocket(int sendSize, int recvSize)
 {
 	if (IsRun())
 	{
@@ -62,7 +62,7 @@ inline void EasyTcpClient::InitSocket()
 	}
 	else {
 		//CELLLog::Info("创建 socket=%d 成功.\n", (int)_sock);
-		_pClient = new CELLClient(sock, SEND_BUF_SIZE, RECV_BUF_SIZE);
+		_pClient = new CELLClient(sock, sendSize, recvSize);
 	}
 }
 
@@ -70,7 +70,7 @@ inline int EasyTcpClient::Connect(const char * ip, unsigned short port)
 {
 	if (!_pClient)
 	{
-		InitSocket();
+		InitSocket(SEND_BUF_SIZE, RECV_BUF_SIZE);
 	}
 
 	sockaddr_in _sin = {};

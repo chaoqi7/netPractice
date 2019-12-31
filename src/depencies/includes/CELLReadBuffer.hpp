@@ -7,7 +7,6 @@ class CELLReadBuffer : public CELLBuffer
 {
 public:
 	CELLReadBuffer(int nSize);
-	~CELLReadBuffer();
 	//是否有一条消息
 	bool hasMsg();
 	//获取第一条消息
@@ -23,10 +22,6 @@ CELLReadBuffer::CELLReadBuffer(int nSize)
 {
 }
 
-CELLReadBuffer::~CELLReadBuffer()
-{
-
-}
 inline bool CELLReadBuffer::hasMsg()
 {
 	if (_nLast >= sizeof(netmsg_DataHeader))

@@ -6,7 +6,7 @@
 #include "EasyTcpClient.hpp"
 #include "CELLTimeStamp.hpp"
 
-const int g_cCount = 10000;
+const int g_cCount = 1000;
 const int g_tCount = 4;
 bool g_bRun = true;
 

@@ -7,7 +7,10 @@
 class CELLReadStream : public CELLStream
 {
 public:
+	//方便直接使用 netmsg_DataHeader*
 	CELLReadStream(netmsg_DataHeader* pHeader);
+	//方便导出DLL的时候使用，
+	CELLReadStream(char* pData, uint32_t nSize, bool bDelete = false);
 	uint16_t ReadNetCMD();
 	uint16_t ReadNetLength();
 public:
@@ -70,9 +73,10 @@ public:
 
 	float ReadFloat();
 	double ReadDouble();
-private:
+
 	//仅仅读取，不偏移
 	uint32_t onlyRead();
+private:
 	//是否可以读取 nLen 字节
 	bool canRead(uint32_t nLen);
 	//读位置偏移
@@ -82,7 +86,12 @@ private:
 };
 
 inline CELLReadStream::CELLReadStream(netmsg_DataHeader * pHeader)
-	:CELLStream((char*)pHeader, pHeader->dataLength, true)
+	:CELLReadStream((char*)pHeader, pHeader->dataLength, true)
+{
+}
+
+inline CELLReadStream::CELLReadStream(char* pData, uint32_t nSize, bool bDelete)
+	: CELLStream(pData, nSize, bDelete)
 {
 }
 

@@ -59,6 +59,7 @@ public:
 		break;
 		case CMD_C2S_STREAM:
 		{
+			pClient->ResetDTHeart();
 			CELLReadStream r(pHeader);
 			auto a2 = r.ReadNetLength();
 			auto a1 = r.ReadNetCMD();
