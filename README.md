@@ -1,6 +1,10 @@
-# netPractce
-TCP Concurrency practice
 
-2019-12-12
-使用 select 模型实现数据的异步接收、发送。
+##全部手写底层并发模块，用于找工作代码能力查看##
+
+计划集成 select, epoll, iocp 模型，支持 windows, linux 系统并发。
+
+基本架构思维练习，单例，生产者-消费者模型简单使用。
+
+
+
 
