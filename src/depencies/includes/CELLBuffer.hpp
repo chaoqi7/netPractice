@@ -52,7 +52,7 @@ inline int CELLBuffer::push(const char * pData, int nLen)
 		memcpy(pNewBuf, _pBuf, _nLast);
 		_nCapacity += n;
 
-		CELLLog::Warning("CELLBuffer push capacity:%d\n", _nCapacity);
+		CELLLog_Warnning("CELLBuffer push capacity:%d", _nCapacity);
 
 		delete[] _pBuf;
 		_pBuf = pNewBuf;
@@ -65,7 +65,7 @@ inline int CELLBuffer::push(const char * pData, int nLen)
 		return nLen;
 	}
 	else {
-		CELLLog::Info("###CELLBUFFER push.ERROR FULL.nLast=%d, nCapacity=%d, nLen=%d\n",
+		CELLLog_Warnning("###CELLBUFFER push.ERROR FULL.nLast=%d, nCapacity=%d, nLen=%d",
 			_nLast, _nCapacity, nLen);
 	}
 

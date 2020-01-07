@@ -1,5 +1,4 @@
-﻿
-#include <stdio.h>
+﻿#include <stdio.h>
 #include "CELLWriteStream.hpp"
 #include "CELLReadStream.hpp"
 #include "NetMsg.h"
@@ -15,7 +14,7 @@ public:
 		case CMD_S2C_LOGIN:
 		{
 			netmsg_S2C_Login* pLoginResult = (netmsg_S2C_Login*)pHeader;
-			//CELLLog::Info("<sockt=%d>收到服务器返回消息 CMD_LOGIN_RESULT, Result:%d, len:%d\n",
+			//CELLLog_Info("<sockt=%d>收到服务器返回消息 CMD_LOGIN_RESULT, Result:%d, len:%d",
 			//	(int)_sock, pLoginResult->result, pLoginResult->dataLength);
 		}
 		break;
@@ -26,13 +25,13 @@ public:
 		case CMD_S2C_NEW_USER_JOIN:
 		{
 			netmsg_S2C_NewUserJoin* pUserJoin = (netmsg_S2C_NewUserJoin*)pHeader;
-			//CELLLog::Info("<sockt=%d>收到服务器返回消息 CMD_NEW_USER_JOIN, sock:%d, len:%d\n",
+			//CELLLog_Info("<sockt=%d>收到服务器返回消息 CMD_NEW_USER_JOIN, sock:%d, len:%d",
 			//	(int)_sock, pUserJoin->sock, pUserJoin->dataLength);
 		}
 		break;
 		case CMD_S2C_ERROR:
 		{
-			CELLLog::Info("CMD_ERROR...\n");
+			CELLLog_Info("CMD_ERROR...");
 		}
 		break;
 		case CMD_S2C_STREAM:
@@ -58,7 +57,7 @@ public:
 		}
 		break;
 		default:
-			CELLLog::Info("收到未定义消息.\n");
+			CELLLog_Info("收到未定义消息.");
 			break;
 		}
 	}
@@ -85,7 +84,7 @@ int main(int argc, char** argv)
 
 	MyClient my;
 	my.Connect("127.0.0.1", 4567);
-	my.SendData(&w);
+	my.SendData(w.Data(), w.Length());
 	while (my.IsRun())
 	{
 		my.OnRun();

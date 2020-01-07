@@ -15,10 +15,7 @@ private:
 		WSAStartup(ver, &dat);
 #else
 		//忽略异常信号，默认会导致进程终止
-		if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-		{
-			return;
-		}
+		signal(SIGPIPE, SIG_IGN);
 #endif
 	}
 	~CELLNetWork()

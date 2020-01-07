@@ -24,31 +24,31 @@ public:
 		case CMD_S2C_LOGIN:
 		{
 			netmsg_S2C_Login* pLoginResult = (netmsg_S2C_Login*)pHeader;
-			//CELLLog::Info("<sockt=%d>收到服务器返回消息 CMD_LOGIN_RESULT, Result:%d, len:%d\n",
+			//CELLLog_Info("<sockt=%d>收到服务器返回消息 CMD_LOGIN_RESULT, Result:%d, len:%d",
 			//	(int)_sock, pLoginResult->result, pLoginResult->dataLength);
 		}
 		break;
 		case CMD_S2C_LOGOUT:
 		{
 			netmsg_S2C_Logout* pLogoutResult = (netmsg_S2C_Logout*)pHeader;
-			//CELLLog::Info("<sockt=%d>收到服务器返回消息 CMD_LOGINOUT_RESULT, Result:%d, len:%d\n",
+			//CELLLog_Info("<sockt=%d>收到服务器返回消息 CMD_LOGINOUT_RESULT, Result:%d, len:%d",
 			//	(int)_sock, pLogoutResult->result, pLogoutResult->dataLength);
 		}
 		break;
 		case CMD_S2C_NEW_USER_JOIN:
 		{
 			netmsg_S2C_NewUserJoin* pUserJoin = (netmsg_S2C_NewUserJoin*)pHeader;
-			//CELLLog::Info("<sockt=%d>收到服务器返回消息 CMD_NEW_USER_JOIN, sock:%d, len:%d\n",
+			//CELLLog_Info("<sockt=%d>收到服务器返回消息 CMD_NEW_USER_JOIN, sock:%d, len:%d",
 			//	(int)_sock, pUserJoin->sock, pUserJoin->dataLength);
 		}
 		break;
 		case CMD_S2C_ERROR:
 		{
-			CELLLog::Info("CMD_ERROR...\n");
+			CELLLog_Error("CMD_ERROR...");
 		}
 		break;
 		default:
-			CELLLog::Info("收到未定义消息.\n");
+			CELLLog_Error("收到未定义消息.");
 			break;
 		}
 	}
@@ -63,12 +63,12 @@ void cmdThread()
 		scanf("%s", cmdBuf);
 		if (0 == strcmp(cmdBuf, "exit"))
 		{
-			CELLLog::Info("cmdThread need exit.\n");
+			CELLLog_Info("cmdThread need exit.");
 			g_bRun = false;
 			break;
 		}
 		else {
-			CELLLog::Info("unknown command, input again.\n");
+			CELLLog_Info("unknown command, input again.");
 		}
 	}	
 }
@@ -80,7 +80,7 @@ void sendThread(int id)
 	int begin = (id - 1)*cNum;
 	int end = id * cNum;
 
-	CELLLog::Info("sendThread id=%d, begin=%d, end=%d\n", id, begin, end);
+	CELLLog_Info("sendThread id=%d, begin=%d, end=%d", id, begin, end);
 
 	for (int n = begin; n < end; n++)
 	{
@@ -89,8 +89,8 @@ void sendThread(int id)
 
 	for (int n = begin; n < end; n++)
 	{
-		client[n]->Connect("192.168.3.248", 4567);
-		//CELLLog::Info("Connect=%d\n", n);
+		client[n]->Connect("192.168.3.61", 4567);
+		//CELLLog_Info("Connect=%d", n);
 	}
 
 	g_readyCount++;
@@ -137,7 +137,7 @@ void sendThread(int id)
 
 int main(int argc, char** argv)
 {
-	CELLLog::setLogPath("clientlog.txt", "w");
+	CELLLog::setLogPath("client", "w");
 	//UI 线程
 	std::thread t1(cmdThread);
 	t1.detach();
@@ -153,14 +153,14 @@ int main(int argc, char** argv)
 		auto t = tTime.getElapseTimeInSeconds();
 		if (t >= 1.0)
 		{
-			CELLLog::Info("thread<%d>, clients<%d>, time<%lf>, send<%d>\n",
+			CELLLog_Info("thread<%d>, clients<%d>, time<%lf>, send<%d>",
 				(int)g_tCount, (int)g_cCount, t, (int)g_sendCount);
 			g_sendCount = 0;
 			tTime.update();
 		}
 	}
 
-	CELLLog::Info("exit the Main Thread.\n");
+	CELLLog_Info("exit the Main Thread.");
 	return 0;
 }
 

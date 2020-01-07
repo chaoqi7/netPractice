@@ -71,7 +71,7 @@ CELLClient::CELLClient(SOCKET cSock, int sendSize, int recvSize)
 
 CELLClient::~CELLClient()
 {
-	CELLLog::Info("server=%d CELLClient %d::~CELLClient\n", _serverID, _id);
+	CELLLog_Debug("server=%d CELLClient %d::~CELLClient", _serverID, _id);
 	Close();
 }
 
@@ -82,7 +82,7 @@ inline SOCKET CELLClient::getSocketfd()
 
 inline void CELLClient::Close()
 {
-	//CELLLog::Info("server=%d CELLClient %d::Close start\n",_serverID, _id);
+	//CELLLog_Info("server=%d CELLClient %d::Close start",_serverID, _id);
 	if (_cSock != INVALID_SOCKET)
 	{
 #ifdef _WIN32
@@ -92,7 +92,7 @@ inline void CELLClient::Close()
 #endif
 		_cSock = INVALID_SOCKET;
 	}
-	//CELLLog::Info("server=%d CELLClient %d::Close end\n", _serverID, _id);
+	//CELLLog_Info("server=%d CELLClient %d::Close end", _serverID, _id);
 }
 
 inline void CELLClient::SetServerID(int serverID)
@@ -109,7 +109,7 @@ inline bool CELLClient::CheckHeart(long long dt)
 	_dtHeart += dt;
 	if (_dtHeart >= CLIENT_HEART_DEATH_TIME)
 	{
-		CELLLog::Info("checkHeart sock=%d, time=%lld\n", (int)_cSock, _dtHeart);
+		CELLLog_Debug("checkHeart sock=%d, time=%lld", (int)_cSock, _dtHeart);
 		return true;
 	}
 	return false;
@@ -125,7 +125,7 @@ inline bool CELLClient::CheckSend(long long dt)
 	_dtSend += dt;
 	if (_dtSend >= FLUSH_SEND_BUF_2_CLIENT_TIME)
 	{
-		//CELLLog::Info("CheckSend sock=%d, time=%lld\n", (int)_cSock, _dtSend);
+		//CELLLog_Info("CheckSend sock=%d, time=%lld", (int)_cSock, _dtSend);
 		SendDataReal();
 		ResetDTSend();
 		return true;

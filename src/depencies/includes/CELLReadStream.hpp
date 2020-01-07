@@ -10,7 +10,7 @@ public:
 	//方便直接使用 netmsg_DataHeader*
 	CELLReadStream(netmsg_DataHeader* pHeader);
 	//方便导出DLL的时候使用，
-	CELLReadStream(char* pData, uint32_t nSize, bool bDelete = false);
+	CELLReadStream(char* pData, uint32_t nSize);
 	uint16_t ReadNetCMD();
 	uint16_t ReadNetLength();
 public:
@@ -86,12 +86,12 @@ private:
 };
 
 inline CELLReadStream::CELLReadStream(netmsg_DataHeader * pHeader)
-	:CELLReadStream((char*)pHeader, pHeader->dataLength, true)
+	:CELLReadStream((char*)pHeader, pHeader->dataLength)
 {
 }
 
-inline CELLReadStream::CELLReadStream(char* pData, uint32_t nSize, bool bDelete)
-	: CELLStream(pData, nSize, bDelete)
+inline CELLReadStream::CELLReadStream(char* pData, uint32_t nSize)
+	: CELLStream(pData, nSize, true)
 {
 }
 

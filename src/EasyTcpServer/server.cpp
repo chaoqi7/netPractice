@@ -3,6 +3,7 @@
 #include "CELLLog.hpp"
 #include "CELLReadStream.hpp"
 #include "CELLWriteStream.hpp"
+#include "CELLConfig.hpp"
 
 class MyServer : public EasyTcpServer
 {
@@ -30,20 +31,20 @@ public:
 		{
 			pClient->ResetDTHeart();
 			netmsg_C2S_Login* pLogin = (netmsg_C2S_Login*)pHeader;
-			//CELLLog::Info("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s\n",
+			//CELLLog_Info("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s",
 			//	pLogin->dataLength, pLogin->userName, pLogin->passWord);
 			//忽略登录消息的具体数据
 			netmsg_S2C_Login ret;
 			if (SOCKET_ERROR == pClient->SendData(&ret))
 			{
-				CELLLog::Info("send buf full.\n");
+				CELLLog_Info("send buf full.");
 			}
 		}
 		break;
 		case CMD_C2S_LOGOUT:
 		{
  			netmsg_C2S_Logout* pLogout = (netmsg_C2S_Logout*)pHeader;
-// 			//CELLLog::Info("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s\n",
+// 			//CELLLog_Info("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s",
 // 			//	pLogout->dataLength, pLogout->userName);
 // 			//忽略登出消息的具体数据
 			netmsg_S2C_Logout ret;
@@ -95,7 +96,7 @@ public:
 		break;
 		default:
 		{
-			CELLLog::Info("收到未定义消息.\n");
+			CELLLog_Info("收到未定义消息.");
 			netmsg_DataHeader ret;
 			pClient->SendData(&ret);
 		}
@@ -106,14 +107,26 @@ private:
 
 };
 
-
 int main(int argc, char** argv)
 {
-	CELLLog::setLogPath("serverlog.txt", "w");
+	CELLLog::setLogPath("server", "w");
+
+	CELLConfig::Instance().Init(argc, argv);
+
+	const char* strIP = CELLConfig::Instance().getStr("strIP", "127.0.0.1");
+	uint16_t nPort = (uint16_t)CELLConfig::Instance().getInt("nPort", 4567);
+	int nThread = CELLConfig::Instance().getInt("nThread", 1);
+	int nClient = CELLConfig::Instance().getInt("nClient", 1);
+
+	if (strcmp(strIP, "any") == 0)
+	{
+		strIP = nullptr;
+	}
+
 	MyServer server(SEND_BUF_SIZE, RECV_BUF_SIZE);
-	server.Bind(nullptr, 4567);
+	server.Bind(strIP, nPort);
 	server.Listen(128);
-	server.Start(4);
+	server.Start(nThread);
 
 // 	MyServer server2(SEND_BUF_SIZE, RECV_BUF_SIZE);
 // 	server2.Bind(nullptr, 4568);
@@ -126,11 +139,11 @@ int main(int argc, char** argv)
 		scanf("%s", cmdBuf);
 		if (0 == strcmp(cmdBuf, "exit"))
 		{
-			CELLLog::Info("cmdThread need exit.\n");
+			CELLLog_Info("cmdThread need exit.");
 			break;
 		}
 		else {
-			CELLLog::Info("unknown command, input again.\n");
+			CELLLog_Info("unknown command, input again.");
 		}
 	}
 
@@ -140,7 +153,7 @@ int main(int argc, char** argv)
 // 	std::this_thread::sleep_for(t);
 // 	task.Close();
 
-	CELLLog::Info("任务结束.\n");
+	CELLLog_Info("任务结束.");
 	return 0;
 }
 

@@ -36,7 +36,7 @@ inline int CELLWriteBuffer::Write2Socket(SOCKET sockfd)
 		_nLast = 0;
 		if (SOCKET_ERROR == ret)
 		{
-			CELLLog::Info("sock=%d CELLWriteBuffer Write2Socket fail.\n", (int)sockfd);
+			CELLLog_Error("sock=%d CELLWriteBuffer Write2Socket fail.", (int)sockfd);
 		}
 	}
 	return ret;
