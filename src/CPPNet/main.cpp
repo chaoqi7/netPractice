@@ -60,11 +60,11 @@ extern "C"
 		return false;
 	}
 	//native socket work procedure.
-	EXPORT_DLL bool CELLNativeTCPClient_OnRun(NativeTCPClient* pClient)
+	EXPORT_DLL bool CELLNativeTCPClient_OnRun(NativeTCPClient* pClient, int microseconds)
 	{
 		if (pClient)
 		{
-			pClient->OnRun();
+			pClient->OnRun(microseconds);
 		}
 		return false;
 	}

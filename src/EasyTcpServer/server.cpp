@@ -30,11 +30,12 @@ public:
 		case CMD_C2S_LOGIN:
 		{
 			pClient->ResetDTHeart();
-			netmsg_C2S_Login* pLogin = (netmsg_C2S_Login*)pHeader;
+			netmsg_Login* pLogin = (netmsg_Login*)pHeader;
 			//CELLLog_Info("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s",
 			//	pLogin->dataLength, pLogin->userName, pLogin->passWord);
 			//忽略登录消息的具体数据
-			netmsg_S2C_Login ret;
+			netmsg_LoginR ret;
+			ret.msgID = pLogin->msgID;
 			if (SOCKET_ERROR == pClient->SendData(&ret))
 			{
 				CELLLog_Info("send buf full.");
@@ -43,18 +44,18 @@ public:
 		break;
 		case CMD_C2S_LOGOUT:
 		{
- 			netmsg_C2S_Logout* pLogout = (netmsg_C2S_Logout*)pHeader;
+ 			netmsg_Logout* pLogout = (netmsg_Logout*)pHeader;
 // 			//CELLLog_Info("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s",
 // 			//	pLogout->dataLength, pLogout->userName);
 // 			//忽略登出消息的具体数据
-			netmsg_S2C_Logout ret;
+			netmsg_LogoutR ret;
 			pClient->SendData(&ret);
 		}
 		break;
 		case CMD_C2S_HEART:
 		{
 			pClient->ResetDTHeart();
-			netmsg_S2C_Heart ret;
+			netmsg_HeartR ret;
 			pClient->SendData(&ret);
 		}
 		break;
@@ -109,7 +110,7 @@ private:
 
 int main(int argc, char** argv)
 {
-	CELLLog::setLogPath("server", "w");
+	CELLLog::setLogPath("serverlog", "w", false);
 
 	CELLConfig::Instance().Init(argc, argv);
 

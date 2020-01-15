@@ -116,6 +116,8 @@ inline void CELLThread::OnWork()
 	}
 	//通告 OnWork 完全退出
 	_semaphore.Wakeup();
+	//避免意外导致的退出
+	_bRun = false;
 }
 
 

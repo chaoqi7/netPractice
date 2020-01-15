@@ -36,77 +36,79 @@ struct netmsg_DataHeader
 };
 
 //登录相关
-struct netmsg_C2S_Login : public netmsg_DataHeader
+struct netmsg_Login : public netmsg_DataHeader
 {
-	netmsg_C2S_Login()
+	netmsg_Login()
 	{
-		this->dataLength = sizeof(netmsg_C2S_Login);
+		this->dataLength = sizeof(netmsg_Login);
 		this->cmd = CMD_C2S_LOGIN;
 	}
 	char userName[32];
 	char passWord[32];
 	char data[56];
+	int msgID;
 };
 
-struct netmsg_S2C_Login : public netmsg_DataHeader
+struct netmsg_LoginR : public netmsg_DataHeader
 {
-	netmsg_S2C_Login()
+	netmsg_LoginR()
 	{
-		this->dataLength = sizeof(netmsg_S2C_Login);
+		this->dataLength = sizeof(netmsg_LoginR);
 		this->cmd = CMD_S2C_LOGIN;
 		this->result = 0;
 	}
 	int result;
 	char data[96];
+	int msgID;
 };
 
 //登出相关
-struct netmsg_C2S_Logout : public netmsg_DataHeader
+struct netmsg_Logout : public netmsg_DataHeader
 {
-	netmsg_C2S_Logout()
+	netmsg_Logout()
 	{
-		this->dataLength = sizeof(netmsg_C2S_Logout);
+		this->dataLength = sizeof(netmsg_Logout);
 		this->cmd = CMD_C2S_LOGOUT;
 	}
 	char userName[32];
 };
 
-struct netmsg_S2C_Logout : public netmsg_DataHeader
+struct netmsg_LogoutR : public netmsg_DataHeader
 {
-	netmsg_S2C_Logout()
+	netmsg_LogoutR()
 	{
-		this->dataLength = sizeof(netmsg_S2C_Logout);
+		this->dataLength = sizeof(netmsg_LogoutR);
 		this->cmd = CMD_S2C_LOGOUT;
 		this->result = 0;
 	}
 	int result;
 };
 
-struct netmsg_S2C_NewUserJoin : public netmsg_DataHeader
+struct netmsg_NewUserJoin : public netmsg_DataHeader
 {
-	netmsg_S2C_NewUserJoin()
+	netmsg_NewUserJoin()
 	{
-		this->dataLength = sizeof(netmsg_S2C_NewUserJoin);
+		this->dataLength = sizeof(netmsg_NewUserJoin);
 		this->cmd = CMD_S2C_NEW_USER_JOIN;
 		this->sock = 0;
 	}
 	int sock;
 };
 
-struct netmsg_C2S_Heart : public netmsg_DataHeader
+struct netmsg_Heart : public netmsg_DataHeader
 {
-	netmsg_C2S_Heart()
+	netmsg_Heart()
 	{
-		this->dataLength = sizeof(netmsg_C2S_Heart);
+		this->dataLength = sizeof(netmsg_Heart);
 		this->cmd = CMD_C2S_HEART;
 	}
 };
 
-struct netmsg_S2C_Heart : public netmsg_DataHeader
+struct netmsg_HeartR : public netmsg_DataHeader
 {
-	netmsg_S2C_Heart()
+	netmsg_HeartR()
 	{
-		this->dataLength = sizeof(netmsg_S2C_Heart);
+		this->dataLength = sizeof(netmsg_HeartR);
 		this->cmd = CMD_S2C_HEART;
 	}
 };

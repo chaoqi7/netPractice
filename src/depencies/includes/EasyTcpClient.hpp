@@ -14,11 +14,11 @@ public:
 	//连接远程服务器
 	int Connect(const char* ip, unsigned short port);
 	//初始化 socket
-	void InitSocket(int sendSize, int recvSize);
+	SOCKET InitSocket(int sendSize, int recvSize);
 	//关闭连接
 	void Close();	
 	//循环执行任务（当前使用select)
-	bool OnRun();
+	bool OnRun(int microseconds);
 	//是否运行
 	bool IsRun();
 	//发送消息
@@ -29,7 +29,7 @@ private:
 	int RecvData();
 	//处理消息
 	virtual void OnNetMsg(netmsg_DataHeader* pHeader) = 0;
-private:
+protected:
 	CELLClient* _pClient = nullptr;
 	bool _bConnect = false;
 };
@@ -44,7 +44,7 @@ EasyTcpClient::~EasyTcpClient()
 	Close();
 }
 
-inline void EasyTcpClient::InitSocket(int sendSize, int recvSize)
+inline SOCKET EasyTcpClient::InitSocket(int sendSize, int recvSize)
 {
 	if (IsRun())
 	{
@@ -63,13 +63,17 @@ inline void EasyTcpClient::InitSocket(int sendSize, int recvSize)
 		//CELLLog_Debug("创建 socket=%d 成功.", (int)sock);
 		_pClient = new CELLClient(sock, sendSize, recvSize);
 	}
+	return sock;
 }
 
 inline int EasyTcpClient::Connect(const char * ip, unsigned short port)
 {
 	if (!_pClient)
 	{
-		InitSocket(SEND_BUF_SIZE, RECV_BUF_SIZE);
+		if (INVALID_SOCKET == InitSocket(SEND_BUF_SIZE, RECV_BUF_SIZE))
+		{
+			return SOCKET_ERROR;
+		}
 	}
 
 	sockaddr_in _sin = {};
@@ -109,7 +113,7 @@ inline bool EasyTcpClient::IsRun()
 	return _bConnect && _pClient;
 }
 
-inline bool EasyTcpClient::OnRun()
+inline bool EasyTcpClient::OnRun(int microseconds)
 {
 	if (IsRun())
 	{
@@ -122,7 +126,7 @@ inline bool EasyTcpClient::OnRun()
 		fd_set fdWrite;			
 		FD_ZERO(&fdWrite);		
 
-		timeval t = { 0, 0 };
+		timeval t = { 0, microseconds };
 		int ret = 0;
 		if (_pClient->NeedWrite())
 		{			

@@ -43,19 +43,19 @@ inline int CELLBuffer::push(const char * pData, int nLen)
 	if (_nLast + nLen > _nCapacity)
 	{
 		
-		int n = _nCapacity - _nLast;
-		if (n < 8192)
-		{
-			n = 8192;
-		}
-		char* pNewBuf = new char[_nCapacity + n];
-		memcpy(pNewBuf, _pBuf, _nLast);
-		_nCapacity += n;
+// 		int n = _nCapacity - _nLast;
+// 		if (n < 8192)
+// 		{
+// 			n = 8192;
+// 		}
+// 		char* pNewBuf = new char[_nCapacity + n];
+// 		memcpy(pNewBuf, _pBuf, _nLast);
+// 		_nCapacity += n;
 
-		CELLLog_Warnning("CELLBuffer push capacity:%d", _nCapacity);
+		CELLLog_Error("CELLBuffer push capacity:%d", _nCapacity);
 
-		delete[] _pBuf;
-		_pBuf = pNewBuf;
+// 		delete[] _pBuf;
+// 		_pBuf = pNewBuf;
 	}
 
 	if ((_nLast + nLen) <= _nCapacity)

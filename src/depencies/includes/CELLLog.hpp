@@ -14,7 +14,7 @@ private:
 	~CELLLog();
 	static CELLLog& Instance();
 public:
-	static void setLogPath(const char* pName, const char* pMode);
+	static void setLogPath(const char* pName, const char* pMode, bool hasDate);
 	//Info
 	static void Info(const char* pStr)
 	{
@@ -104,7 +104,7 @@ inline CELLLog & CELLLog::Instance()
 	return obj;
 }
 
-inline void CELLLog::setLogPath(const char * pName, const char * pMode)
+inline void CELLLog::setLogPath(const char * pName, const char * pMode, bool hasDate)
 {
 	auto pLog = &Instance();
 	if (pLog->_pLogFile)
@@ -114,14 +114,23 @@ inline void CELLLog::setLogPath(const char * pName, const char * pMode)
 		pLog->_pLogFile = nullptr;
 	}
 
-	auto t = std::chrono::system_clock::now();
-	auto now = std::chrono::system_clock::to_time_t(t);
-	std::tm *tNow = std::localtime(&now);
+
 	
 	static char pPath[256] = {};
-	sprintf(pPath, "%s_%d-%02d-%02d_%02d-%02d-%02d.txt", pName,
-		tNow->tm_year + 1900, tNow->tm_mon + 1, tNow->tm_mday,
-		tNow->tm_hour, tNow->tm_min, tNow->tm_sec);
+	if (hasDate)
+	{
+		auto t = std::chrono::system_clock::now();
+		auto now = std::chrono::system_clock::to_time_t(t);
+		std::tm *tNow = std::localtime(&now);
+
+		sprintf(pPath, "%s_%d-%02d-%02d_%02d-%02d-%02d.txt", pName,
+			tNow->tm_year + 1900, tNow->tm_mon + 1, tNow->tm_mday,
+			tNow->tm_hour, tNow->tm_min, tNow->tm_sec);
+	}
+	else {
+		sprintf(pPath, "%s.txt", pName);
+	}
+
 	pLog->_pLogFile = fopen(pPath, pMode);
 	if (pLog->_pLogFile)
 	{

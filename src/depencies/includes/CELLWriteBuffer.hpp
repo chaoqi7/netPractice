@@ -32,11 +32,20 @@ inline int CELLWriteBuffer::Write2Socket(SOCKET sockfd)
 	{
 		//发送数据
 		ret = send(sockfd, _pBuf, _nLast, 0);
-		//清空缓冲区
-		_nLast = 0;
-		if (SOCKET_ERROR == ret)
+		if (ret <= 0)
 		{
 			CELLLog_Error("sock=%d CELLWriteBuffer Write2Socket fail.", (int)sockfd);
+			return SOCKET_ERROR;
+		}
+		else if (ret == _nLast)
+		{
+			//清空缓冲区
+			_nLast = 0;
+		}
+		//如果实际发送的数据小于真实发送的数据
+		else {
+			_nLast -= ret;
+			memcpy(_pBuf, _pBuf + ret, _nLast);
 		}
 	}
 	return ret;

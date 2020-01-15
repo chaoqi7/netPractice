@@ -69,7 +69,7 @@ private:
 			val[0] = '\0';
 			val++;
 			_kv[cmd] = val;
-			//CELLLog_Debug("CELLConfig::makeKV <%s, %s>", cmd, val);
+			CELLLog_Debug("CELLConfig::makeKV <%s, %s>", cmd, val);
 		}
 		else {
 			_kv[cmd] = cmd;
