@@ -1,4 +1,4 @@
-#ifndef _CELL_NET_WORK_H_
+ï»¿#ifndef _CELL_NET_WORK_H_
 #define _CELL_NET_WORK_H_
 
 #include "CELL.hpp"
@@ -9,12 +9,12 @@ private:
 	CELLNetWork()
 	{
 #ifdef _WIN32
-		//³õÊ¼»¯ socket 2.0 »·¾³
+		//åˆå§‹åŒ– socket 2.0 ç¯å¢ƒ
 		WORD ver = MAKEWORD(2, 2);
 		WSADATA dat;
 		WSAStartup(ver, &dat);
 #else
-		//ºöÂÔÒì³£ĞÅºÅ£¬Ä¬ÈÏ»áµ¼ÖÂ½ø³ÌÖÕÖ¹
+		//å¿½ç•¥å¼‚å¸¸ä¿¡å·ï¼Œé»˜è®¤ä¼šå¯¼è‡´è¿›ç¨‹ç»ˆæ­¢
 		signal(SIGPIPE, SIG_IGN);
 #endif
 	}
@@ -28,6 +28,17 @@ public:
 	static void Init()
 	{
 		static CELLNetWork obj;
+	}
+
+	static void close(SOCKET s)
+	{
+#ifdef _WIN32
+		//æ–­å¼€ socket è¿æ¥
+		closesocket(s);
+#else
+		//æ–­å¼€ socket è¿æ¥
+		close(s);
+#endif
 	}
 };
 

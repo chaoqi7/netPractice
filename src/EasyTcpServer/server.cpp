@@ -8,9 +8,11 @@
 class MyServer : public EasyTcpServer
 {
 public:
-	MyServer(int nSendSize, int nRecvSize)
-		:EasyTcpServer(nSendSize, nRecvSize)
+	MyServer()
 	{
+		_bSendBack = CELLConfig::Instance().hasKey("-sendback");
+		_bSendFull = CELLConfig::Instance().hasKey("-sendfull");
+		_bCheckMsgID = CELLConfig::Instance().hasKey("-checkMsgID");
 	}
 	void OnNetJoin(CELLClient* pClient) override
 	{
@@ -29,16 +31,38 @@ public:
 		{
 		case CMD_C2S_LOGIN:
 		{
+			//重置心跳
 			pClient->ResetDTHeart();
 			netmsg_Login* pLogin = (netmsg_Login*)pHeader;
-			//CELLLog_Info("收到命令:CMD_LOGIN, 数据长度:%d, userName:%s, password:%s",
-			//	pLogin->dataLength, pLogin->userName, pLogin->passWord);
-			//忽略登录消息的具体数据
-			netmsg_LoginR ret;
-			ret.msgID = pLogin->msgID;
-			if (SOCKET_ERROR == pClient->SendData(&ret))
+			//检查登录ID
+			if (_bCheckMsgID)
 			{
-				CELLLog_Info("send buf full.");
+				if (pLogin->msgID != pClient->_nRecvMsgID)
+				{
+					CELLLog_Error("OnNetMsg socket<%d> msgID<%d> _nRecvMsgID<%d> %d",
+						pClient->getSocketfd(), pLogin->msgID, pClient->_nRecvMsgID, pLogin->msgID - pClient->_nRecvMsgID);
+				}
+				++pClient->_nRecvMsgID;
+			}
+
+			/*
+			处理登录逻辑
+			*/
+			//回应消息
+			if (_bSendBack)
+			{
+				netmsg_LoginR ret;
+				ret.msgID = pClient->_nSendMsgID;
+				if (SOCKET_ERROR == pClient->SendData(&ret))
+				{
+					if (_bSendFull)
+					{
+						CELLLog_Warnning("<socket=%d> Send Full", pClient->getSocketfd());
+					}
+				}
+				else {
+					++pClient->_nSendMsgID;
+				}
 			}
 		}
 		break;
@@ -105,34 +129,35 @@ public:
 		}
 	}
 private:
-
+	//收到消息后返回应答消息
+	bool _bSendBack = false;
+	//是否提示：发送缓冲区已满
+	bool _bSendFull = false;
+	//是否检查接收到的消息ID是否连续
+	bool _bCheckMsgID = false;
 };
 
 int main(int argc, char** argv)
 {
+	//日志
 	CELLLog::setLogPath("serverlog", "w", false);
 
+	//配置相关
 	CELLConfig::Instance().Init(argc, argv);
-
 	const char* strIP = CELLConfig::Instance().getStr("strIP", "127.0.0.1");
 	uint16_t nPort = (uint16_t)CELLConfig::Instance().getInt("nPort", 4567);
-	int nThread = CELLConfig::Instance().getInt("nThread", 1);
-	int nClient = CELLConfig::Instance().getInt("nClient", 1);
+	int nThread = CELLConfig::Instance().getInt("nThread", 4);
 
 	if (strcmp(strIP, "any") == 0)
 	{
 		strIP = nullptr;
 	}
 
-	MyServer server(SEND_BUF_SIZE, RECV_BUF_SIZE);
+	//启动服务
+	MyServer server;
 	server.Bind(strIP, nPort);
 	server.Listen(128);
 	server.Start(nThread);
-
-// 	MyServer server2(SEND_BUF_SIZE, RECV_BUF_SIZE);
-// 	server2.Bind(nullptr, 4568);
-// 	server2.Listen(128);
-// 	server2.Start(4);
 
 	while (true)
 	{
@@ -147,12 +172,6 @@ int main(int argc, char** argv)
 			CELLLog_Info("unknown command, input again.");
 		}
 	}
-
-// 	CellTaskServer task;
-// 	task.Start(1);
-// 	std::chrono::milliseconds t(1000);
-// 	std::this_thread::sleep_for(t);
-// 	task.Close();
 
 	CELLLog_Info("任务结束.");
 	return 0;

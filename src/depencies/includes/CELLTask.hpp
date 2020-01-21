@@ -63,8 +63,7 @@ inline void CellTaskServer::OnRun(CELLThread* pThread)
 		//如果正在处理列表没有任务
 		if (_tasks.empty())
 		{
-			std::chrono::milliseconds t(1);
-			std::this_thread::sleep_for(t);
+			CELLThread::Sleep(1);
 			continue;
 		}
 

@@ -9,11 +9,13 @@
 #include "CELLServer.hpp"
 #include "CELLThread.hpp"
 #include "CELLNetWork.hpp"
+#include "CELLConfig.hpp"
+#include "CELLFDSet.hpp"
 
 class EasyTcpServer : public INetEvent
 {
 public:
-	EasyTcpServer(int nSendSize, int nRecvSize);
+	EasyTcpServer();
 	virtual ~EasyTcpServer();
 	//连接远程服务器
 	int Bind(const char* ip, unsigned short port);
@@ -67,17 +69,20 @@ private:
 	int _nSendBufSize = 0;
 	//为客户端分配的接收缓冲区大小
 	int _nRecvBufSize = 0;
+	//客户端连接上限
+	int _nMaxClient = 0;
 protected:
 	std::atomic<int> _clientCount{ 0 };
 	std::atomic<int> _msgCount{ 0 };
 	std::atomic<int> _recvCount{ 0 };
 };
 
-EasyTcpServer::EasyTcpServer(int nSendSize, int nRecvSize)
+EasyTcpServer::EasyTcpServer()
 {
 	_sock = INVALID_SOCKET;
-	_nSendBufSize = nSendSize;
-	_nRecvBufSize = nRecvSize;
+	_nSendBufSize = CELLConfig::Instance().getInt("nSendBuffSize", SEND_BUF_SIZE);
+	_nRecvBufSize = CELLConfig::Instance().getInt("nRecvBuffSize", RECV_BUF_SIZE);
+	_nMaxClient = CELLConfig::Instance().getInt("nMaxClient", FD_SETSIZE);
 }
 
 EasyTcpServer::~EasyTcpServer()
@@ -163,8 +168,17 @@ int EasyTcpServer::Accept()
 		CELLLog_Error("接受到无效客户端SOCKET");
 		return -1;
 	}
-	//把新客户端 socket 添加到全局数据里面
-	AddClient2CellServer(new CELLClient(cSock, _nSendBufSize, _nRecvBufSize));
+
+	if (_clientCount < _nMaxClient)
+	{
+		//把新客户端 socket 添加到全局数据里面
+		AddClient2CellServer(new CELLClient(cSock, _nSendBufSize, _nRecvBufSize));
+	}
+	else {
+		CELLNetWork::close(cSock);
+		CELLLog_Error("Accept to nMaxClient");
+	}
+
 	return 0;
 }
 
@@ -179,13 +193,7 @@ void EasyTcpServer::Close()
 			delete ser;
 		}
 		_cellServers.clear();
-#ifdef _WIN32
-		//断开 socket 连接
-		closesocket(_sock);
-#else
-		//断开 socket 连接
-		close(_sock);
-#endif
+		CELLNetWork::close(_sock);
 		_sock = INVALID_SOCKET;
 	}
 	CELLLog_Info("EasyTcpServer::Close end");
@@ -193,19 +201,21 @@ void EasyTcpServer::Close()
 
 void EasyTcpServer::OnRun(CELLThread* pThread)
 {
+	CELLFDSet fdRead;
+
 	while (pThread->IsRun())
 	{
 		time4msg();
-		fd_set fdRead;
-		FD_ZERO(&fdRead);
+		
+		fdRead.zero();
 		//把服务器 socket 加入监听
-		FD_SET(_sock, &fdRead);
+		fdRead.add(_sock);
 		/*
 		NULL:一直阻塞
 		timeval 只能精确到秒
 		*/
 		timeval t = { 0, 1 };
-		int ret = select((int)_sock + 1, &fdRead, nullptr, nullptr, &t);
+		int ret = select((int)_sock + 1, fdRead.fdset(), nullptr, nullptr, &t);
 		if (SOCKET_ERROR == ret)
 		{
 			CELLLog_Error("EasyTcpServer::OnRun select error.");
@@ -217,9 +227,8 @@ void EasyTcpServer::OnRun(CELLThread* pThread)
 			//continue;
 		}
 
-		if (FD_ISSET(_sock, &fdRead))
+		if (fdRead.has(_sock))
 		{
-			FD_CLR(_sock, &fdRead);
 			Accept();
 		}
 	}

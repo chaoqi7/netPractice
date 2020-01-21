@@ -13,7 +13,7 @@ public:
 		{
 		case CMD_S2C_LOGIN:
 		{
-			netmsg_S2C_Login* pLoginResult = (netmsg_S2C_Login*)pHeader;
+			netmsg_LoginR* pLoginResult = (netmsg_LoginR*)pHeader;
 			//CELLLog_Info("<sockt=%d>收到服务器返回消息 CMD_LOGIN_RESULT, Result:%d, len:%d",
 			//	(int)_sock, pLoginResult->result, pLoginResult->dataLength);
 		}
@@ -24,7 +24,7 @@ public:
 		break;
 		case CMD_S2C_NEW_USER_JOIN:
 		{
-			netmsg_S2C_NewUserJoin* pUserJoin = (netmsg_S2C_NewUserJoin*)pHeader;
+			netmsg_NewUserJoin* pUserJoin = (netmsg_NewUserJoin*)pHeader;
 			//CELLLog_Info("<sockt=%d>收到服务器返回消息 CMD_NEW_USER_JOIN, sock:%d, len:%d",
 			//	(int)_sock, pUserJoin->sock, pUserJoin->dataLength);
 		}
@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 	my.SendData(w.Data(), w.Length());
 	while (my.IsRun())
 	{
-		my.OnRun();
+		my.OnRun(1);
 
 	}
 

@@ -57,6 +57,12 @@ private:
 	long long _dtSend = 0;
 	int _id = -1;
 	int _serverID = -1;
+public:
+	//用于调试的成员变量
+	//检查server端收到的消息ID是否连续
+	int _nRecvMsgID = 1;
+	//检查client端收到的消息ID是否连续
+	int _nSendMsgID = 1;
 };
 
 CELLClient::CELLClient(SOCKET cSock, int sendSize, int recvSize)
