@@ -24,7 +24,21 @@ public:
 	//关闭连接
 	void Close();
 	//创建工作子线程
-	void Start(int cellServerCount = 1);
+	template<typename ServerT>
+	void Start(int cellServerCount = 1)
+	{
+		for (int n = 0; n < cellServerCount; n++)
+		{
+			auto ser = new ServerT();
+			ser->setObj(n + 1, this);
+			_cellServers.push_back(ser);
+			ser->Start();
+		}
+
+		_thread.Start(nullptr, [this](CELLThread* pThread) {
+			OnRun(pThread);
+		}, nullptr);
+	}
 public:
 	//继承的接口
 	void OnNetJoin(CELLClient* pClient) override
@@ -51,14 +65,16 @@ public:
 private:
 	//初始化 socket
 	void InitSocket();
-	//接收客户端连接
-	int Accept();
 	//添加新客户端到子线程
 	void AddClient2CellServer(CELLClient* pClient);
+protected:
 	//工作函数
-	void OnRun(CELLThread* pThread);
+	virtual void OnRun(CELLThread* pThread) = 0;
+	//接收客户端连接
+	int Accept();
 	//统计包数据
 	void time4msg();
+	SOCKET socketfd() { return _sock; }
 private:
 	SOCKET _sock;
 	//子线程队列
@@ -232,20 +248,6 @@ void EasyTcpServer::OnRun(CELLThread* pThread)
 			Accept();
 		}
 	}
-}
-
-inline void EasyTcpServer::Start(int cellServerCount)
-{
-	for (int n = 0; n < cellServerCount; n++)
-	{
-		auto ser = new CellServer(n + 1, this);
-		_cellServers.push_back(ser);
-		ser->Start();
-	}
-
-	_thread.Start(nullptr,[this](CELLThread* pThread){
-		OnRun(pThread);
-	}, nullptr);
 }
 
 inline void EasyTcpServer::AddClient2CellServer(CELLClient * pClient)

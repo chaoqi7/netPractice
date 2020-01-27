@@ -1,11 +1,11 @@
 ﻿
-#include "EasyTcpServer.hpp"
+#include "EasySelectServer.hpp"
 #include "CELLLog.hpp"
 #include "CELLReadStream.hpp"
 #include "CELLWriteStream.hpp"
 #include "CELLConfig.hpp"
 
-class MyServer : public EasyTcpServer
+class MyServer : public EasySelectServer
 {
 public:
 	MyServer()
