@@ -65,10 +65,10 @@ public:
 
     ~CELLEpoll()
     {
-        Close();
+        destory();
     }
 
-    void Close()
+    void destory()
     {
         close(_epfd);
         if (_pEvents)
