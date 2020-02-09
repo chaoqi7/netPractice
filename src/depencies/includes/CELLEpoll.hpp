@@ -3,22 +3,20 @@
 
 #ifdef __linux__
 
+#include "CELL.hpp"
+
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <stdio.h>
 
-#define SOCKET int
-#define INVALID_SOCKET (SOCKET)(~0)
-#define SOCKET_ERROR (-1)
 #define EPOLL_ERROR (-1)
 
 class CELLEpoll
 {
 public:
-    CELLEpoll(int maxsize)
+    create(int maxsize)
     {
         _maxEvent = maxsize;
         _epfd = epoll_create(_maxEvent);
@@ -28,7 +26,7 @@ public:
         }
         _pEvents = new epoll_event[_maxEvent];
     }
-
+	//增加对指定 socket 的事件监听
     int ctl(int op, SOCKET sock, uint32_t events)
     {
         epoll_event event = {};
