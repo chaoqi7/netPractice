@@ -6,6 +6,7 @@
 #define FLUSH_SEND_BUF_2_CLIENT_TIME 200
 
 #include "CELL.hpp"
+#include "CELLNetWork.hpp"
 #include "CELLReadBuffer.hpp"
 #include "CELLWriteBuffer.hpp"
 
@@ -77,7 +78,7 @@ CELLClient::CELLClient(SOCKET cSock, int sendSize, int recvSize)
 
 CELLClient::~CELLClient()
 {
-	CELLLog_Debug("server=%d CELLClient %d::~CELLClient", _serverID, _id);
+	//CELLLog_Debug("server=%d CELLClient %d::~CELLClient", _serverID, _id);
 	Close();
 }
 
@@ -91,12 +92,7 @@ inline void CELLClient::Close()
 	//CELLLog_Info("server=%d CELLClient %d::Close start",_serverID, _id);
 	if (_cSock != INVALID_SOCKET)
 	{
-#ifdef _WIN32
-		closesocket(_cSock);
-#else
-		close(_cSock);
-#endif
-		_cSock = INVALID_SOCKET;
+		CELLNetWork::close(_cSock);
 	}
 	//CELLLog_Info("server=%d CELLClient %d::Close end", _serverID, _id);
 }

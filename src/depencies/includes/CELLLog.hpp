@@ -55,27 +55,79 @@ public:
 	{
 		WriteLog("Error", format, args...);
 	}
+	//PError
+	static void PError(const char* pStr)
+	{
+		PError("%s", pStr);
+	}
+	template<typename ...Args>
+	static void PError(const char* format, Args ... args)
+	{
+#ifdef _WIN32
+		auto errCode = GetLastError();
+		Instance()._taskServer.AddTask([=](){
+			char errMsg[256] = {};
+			FormatMessageA(
+				FORMAT_MESSAGE_FROM_SYSTEM,
+				NULL,
+				errCode,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				errMsg,
+				256,
+				NULL);
+			WriteLogReal(true, "PError", format, args...);
+			WriteLogReal(false, "PError", "errno=%d, error msg=%s", errCode, errMsg);
+		});
+#else
+		auto errCode = errno;
+		Instance()._taskServer.AddTask([=]() {
+			WriteLogReal(true, "PError", format, args...);
+			WriteLogReal(true, "PError", "errno=%d, error msg=%s", errCode, strerror(errCode));
+		});
+#endif		
+	}
+
 private:
 	template<typename ...Args>
 	static void WriteLog(const char* szType, const char* pFormat, Args ... args)
 	{
 		auto pLog = &Instance();
 		pLog->_taskServer.AddTask([=]() {
-			auto t = std::chrono::system_clock::now();
-			auto now = std::chrono::system_clock::to_time_t(t);
-			std::tm *tNow = std::localtime(&now);
-			//写入日志类型，时间
-			fprintf(pLog->_pLogFile, "%s [%d-%02d-%02d %02d:%02d:%02d] ",
-				szType, tNow->tm_year + 1900, tNow->tm_mon + 1, tNow->tm_mday, 
-				tNow->tm_hour, tNow->tm_min, tNow->tm_sec);
+			WriteLogReal(true, szType, pFormat, args...);
+		});		
+	}
+
+	template<typename ...Args>
+	static void WriteLogReal(bool br, const char* szType, const char* pFormat, Args ... args)
+	{
+		auto pLog = &Instance();
+		auto t = std::chrono::system_clock::now();
+		auto now = std::chrono::system_clock::to_time_t(t);
+		std::tm *tNow = std::localtime(&now);
+		//写入日志类型，时间
+		fprintf(pLog->_pLogFile, "%s [%d-%02d-%02d %02d:%02d:%02d] ",
+			szType, tNow->tm_year + 1900, tNow->tm_mon + 1, tNow->tm_mday,
+			tNow->tm_hour, tNow->tm_min, tNow->tm_sec);
+		if (szType)
+		{
 			fprintf(pLog->_pLogFile, "%s ", szType);
-			fprintf(pLog->_pLogFile, pFormat, args...);
+		}		
+		fprintf(pLog->_pLogFile, pFormat, args...);
+		if (br)
+		{
 			fprintf(pLog->_pLogFile, "%s", "\n");
-			fflush(pLog->_pLogFile);
-		});
-		printf("%s ", szType);
+		}			
+		fflush(pLog->_pLogFile);	
+		//写日志到 Console
+		if (szType)
+		{
+			printf("%s ", szType);
+		}
 		printf(pFormat, args...);
-		printf("%s", "\n");
+		if (br)
+		{
+			printf("%s", "\n");
+		}
 	}
 private:
 	CellTaskServer _taskServer;
@@ -161,7 +213,9 @@ inline void CELLLog::setLogPath(const char * pName, const char * pMode, bool has
 #ifndef CELLLog_Error
 	#define CELLLog_Error(...) CELLLog::Error(__VA_ARGS__)
 #endif
-
+#ifndef CELLLog_PError
+#define CELLLog_PError(...) CELLLog::PError(__VA_ARGS__)
+#endif
 #endif // _CELL_LOG_H_
 
 

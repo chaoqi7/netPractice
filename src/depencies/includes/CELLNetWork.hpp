@@ -39,6 +39,7 @@ public:
 		//断开 socket 连接
 		close(s);
 #endif
+		s = INVALID_SOCKET;
 	}
 };
 

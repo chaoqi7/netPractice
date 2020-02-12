@@ -57,7 +57,7 @@ inline SOCKET EasyTcpClient::InitSocket(int sendSize, int recvSize)
 	SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (INVALID_SOCKET == sock)
 	{
-		CELLLog_Info("create socket fail.");
+		CELLLog_PError("create socket.");
 	}
 	else {
 		//CELLLog_Debug("创建 socket=%d 成功.", (int)sock);
@@ -72,6 +72,7 @@ inline int EasyTcpClient::Connect(const char * ip, unsigned short port)
 	{
 		if (INVALID_SOCKET == InitSocket(SEND_BUF_SIZE, RECV_BUF_SIZE))
 		{
+			CELLLog_PError("EasyTcpClient::Connect InitSocket");
 			return SOCKET_ERROR;
 		}
 	}
@@ -87,7 +88,7 @@ inline int EasyTcpClient::Connect(const char * ip, unsigned short port)
 	int ret = connect(_pClient->getSocketfd(), (sockaddr*)&_sin, sizeof(sockaddr_in));
 	if (SOCKET_ERROR == ret)
 	{
-		CELLLog_Error("<sockt=%d> connect <%s:%d> failed.", 
+		CELLLog_PError("<sockt=%d> connect <%s:%d> failed.", 
 			(int)_pClient->getSocketfd(), ip, port);
 		return -1;
 	}
@@ -139,7 +140,7 @@ inline bool EasyTcpClient::OnRun(int microseconds)
 
 		if (ret == SOCKET_ERROR)
 		{
-			CELLLog_Error("EasyTcpClient::OnRun select error.");
+			CELLLog_PError("EasyTcpClient::OnRun select.");
 			Close();
 			return false;
 		}
@@ -152,7 +153,7 @@ inline bool EasyTcpClient::OnRun(int microseconds)
 		{
 			if (-1 == RecvData())
 			{
-				CELLLog_Error("<sockt=%d> EasyTcpClient::OnRun RecvData error.", (int)cSock);
+				//CELLLog_PError("<sockt=%d> EasyTcpClient::OnRun RecvData.", (int)cSock);
 				Close();
 				return false;
 			}
@@ -162,7 +163,7 @@ inline bool EasyTcpClient::OnRun(int microseconds)
 		{
 			if (-1 == _pClient->SendDataReal())
 			{
-				CELLLog_Error("<sockt=%d> EasyTcpClient::OnRun SendDataReal error.", (int)cSock);
+				CELLLog_PError("<sockt=%d> EasyTcpClient::OnRun SendDataReal.", (int)cSock);
 				Close();
 				return false;
 			}

@@ -14,18 +14,19 @@
 class CellServer
 {
 public:
-	~CellServer();
+	virtual ~CellServer();
 	void setObj(int id, INetEvent* netEvent);
 	void AddClient(CELLClient* pClient);
 	size_t GetClientCount();
 	void Start();
 	//添加发送任务
 	void AddSendTask(CELLClient* pClient, netmsg_DataHeader* pHeader);
-private:
-	void OnRun(CELLThread* pThread);
+protected:
 	//通过select 检测可写，可读。
 	virtual bool DoNetEvents() = 0;
 	void Close();
+private:
+	void OnRun(CELLThread* pThread);
 	void CleanClients();
 	//处理消息
 	void DoMsg();

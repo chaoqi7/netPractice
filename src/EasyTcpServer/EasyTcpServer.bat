@@ -7,7 +7,7 @@ set cmd=%cmd% nPort=4567
 ::线程数
 set cmd=%cmd% nThread=1
 ::能接收的最大客户端数量
-set cmd=%cmd% nMaxClient=8
+set cmd=%cmd% nMaxClient=10240
 ::客户端发送缓冲区大小（字节）
 set cmd=%cmd% nSendBuffSize=81920
 ::客户端接收缓冲区大小（字节）

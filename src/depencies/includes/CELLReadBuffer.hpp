@@ -52,8 +52,8 @@ inline int CELLReadBuffer::read4socket(SOCKET sockfd)
 		int nLen = (int)recv(sockfd, _pBuf + _nLast, nLeft, 0);
 		if (nLen <= 0)
 		{
-			CELLLog_Error("<sock=%d> CELLReadBuffer::read4socket error.", (int)sockfd);
-			return SOCKET_ERROR;
+			//CELLLog_PError("<sock=%d> CELLReadBuffer::read4socket.", (int)sockfd);
+			return nLen;
 		}
 		//扩大数据长度
 		_nLast += nLen;

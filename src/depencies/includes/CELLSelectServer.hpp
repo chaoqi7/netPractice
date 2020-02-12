@@ -7,6 +7,10 @@
 class CellSelectServer : public CellServer
 {
 public:
+	~CellSelectServer()
+	{
+		Close();
+	}
 	//通过select 检测可写，可读。
 	bool DoNetEvents();
 	//当前 socket 触发了可读
@@ -72,6 +76,7 @@ inline bool CellSelectServer::DoNetEvents()
 
 	if (SOCKET_ERROR == ret)
 	{
+		CELLLog_PError("CellSelectServer::DoNetEvents select.");
 		return false;
 	}
 	else if (0 == ret) {

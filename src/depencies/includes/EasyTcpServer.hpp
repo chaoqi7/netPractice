@@ -119,7 +119,7 @@ void EasyTcpServer::InitSocket()
 	_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (INVALID_SOCKET == _sock)
 	{
-		CELLLog_Error("绑定端口失败.");
+		CELLLog_PError("绑定端口失败.");
 	}
 	else {
 		CELLLog_Info("绑定 socket=%d 成功.", (int)_sock);
@@ -143,7 +143,7 @@ inline int EasyTcpServer::Bind(const char * ip, unsigned short port)
 	int ret = bind(_sock, (sockaddr*)&_sAddr, sizeof(_sAddr));
 	if (SOCKET_ERROR == ret)
 	{
-		CELLLog_Error("绑定<%s, %d>错误.", ip, port);
+		CELLLog_PError("绑定<%s, %d>错误.", ip, port);
 		return -1;
 	}
 	else {
@@ -160,7 +160,7 @@ int EasyTcpServer::Listen(int backlog)
 		ret = listen(_sock, backlog);
 		if (SOCKET_ERROR == ret)
 		{
-			CELLLog_Error("监听网络<socket=%d>端口错误.", (int)_sock);
+			CELLLog_PError("监听网络<socket=%d>端口错误.", (int)_sock);
 		}
 		else {
 			CELLLog_Info("监听网络<socket=%d>端口成功.", (int)_sock);
@@ -181,7 +181,7 @@ int EasyTcpServer::Accept()
 	SOCKET cSock = accept(_sock, (sockaddr*)&_cAddr, &_cAddrLen);
 	if (INVALID_SOCKET == cSock)
 	{
-		CELLLog_Error("接受到无效客户端SOCKET");
+		CELLLog_PError("接受到无效客户端SOCKET");
 		return -1;
 	}
 
@@ -210,7 +210,6 @@ void EasyTcpServer::Close()
 		}
 		_cellServers.clear();
 		CELLNetWork::close(_sock);
-		_sock = INVALID_SOCKET;
 	}
 	CELLLog_Info("EasyTcpServer::Close end");
 }
@@ -234,7 +233,7 @@ void EasyTcpServer::OnRun(CELLThread* pThread)
 		int ret = select((int)_sock + 1, fdRead.fdset(), nullptr, nullptr, &t);
 		if (SOCKET_ERROR == ret)
 		{
-			CELLLog_Error("EasyTcpServer::OnRun select error.");
+			CELLLog_PError("EasyTcpServer::OnRun select.");
 			pThread->Exit();
 			break;
 		}

@@ -22,7 +22,7 @@ public:
         _epfd = epoll_create(_maxEvent);
         if (_epfd == EPOLL_ERROR)
         {
-            printf("error, epoll_create fail.\n");
+			CELLLog_PError("epoll_create");
         }
         _pEvents = new epoll_event[_maxEvent];
     }
@@ -35,7 +35,7 @@ public:
         int ret = epoll_ctl(_epfd, op, sock, &event);
         if (ret == EPOLL_ERROR)
         {
-            printf("error, epoll_ctl(epfd=%d, op=%d, sock=%d) fail.\n", _epfd, op, sock);
+			CELLLog_PError("epoll_ctl(epfd=%d, op=%d, sock=%d) fail.\n", _epfd, op, sock);
         }
         return ret;
     }
@@ -51,7 +51,7 @@ public:
         int ret = epoll_wait(_epfd, _pEvents, _maxEvent, timeout);
         if (ret == EPOLL_ERROR)
         {
-            printf("error, epoll_wait fail.\n");
+			CELLLog_PError("epoll_wait");
         }
         return ret;
     }

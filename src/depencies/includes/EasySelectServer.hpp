@@ -8,6 +8,10 @@
 class EasySelectServer : public EasyTcpServer
 {
 public:
+	~EasySelectServer()
+	{
+		Close();
+	}
 	void Start(int cellServerCount = 1)
 	{
 		EasyTcpServer::Start<CellSelectServer>(cellServerCount);
@@ -33,7 +37,7 @@ protected:
 			int ret = select((int)curfd + 1, fdRead.fdset(), nullptr, nullptr, &t);
 			if (SOCKET_ERROR == ret)
 			{
-				CELLLog_Error("EasyTcpServer::OnRun select error.");
+				CELLLog_PError("EasySelectServer::OnRun select.");
 				pThread->Exit();
 				break;
 			}
