@@ -18,8 +18,8 @@ public:
 	//获取当前客户端的 socket
 	SOCKET getSocketfd();
 	//发送消息
-	int SendData(netmsg_DataHeader* pHeader);
-	int SendData(const char* pData, int nLen);
+	int SendData(netmsg_DataHeader *pHeader);
+	int SendData(const char *pData, int nLen);
 	//立即发送数据
 	int SendDataReal();
 	//读取数据
@@ -27,7 +27,7 @@ public:
 	//是否有消息
 	bool HasMsg();
 	//获取第一条消息
-	netmsg_DataHeader* FrontMsg();
+	netmsg_DataHeader *FrontMsg();
 	//删除第一条消息
 	void PopFrontMsg();
 	//检查是否有数据需要写
@@ -38,13 +38,16 @@ public:
 	bool CheckHeart(long long dt);
 	//检测定时发送
 	bool CheckSend(long long dt);
+
 public:
 	void SetServerID(int serverID);
+
 private:
 	//重置发送计时
 	void ResetDTSend();
 	//关闭当前客户端的 socket
 	void Close();
+
 private:
 	SOCKET _cSock = INVALID_SOCKET;
 	//缓冲区的控制根据业务需求的差异而调整
@@ -58,6 +61,7 @@ private:
 	long long _dtSend = 0;
 	int _id = -1;
 	int _serverID = -1;
+
 public:
 	//用于调试的成员变量
 	//检查server端收到的消息ID是否连续
@@ -67,7 +71,7 @@ public:
 };
 
 CELLClient::CELLClient(SOCKET cSock, int sendSize, int recvSize)
-	:_sendBuf(sendSize),_recvBuf(recvSize)
+	: _sendBuf(sendSize), _recvBuf(recvSize)
 {
 	static int n = 1;
 	_id = n++;
@@ -92,7 +96,7 @@ inline void CELLClient::Close()
 	//CELLLog_Info("server=%d CELLClient %d::Close start",_serverID, _id);
 	if (_cSock != INVALID_SOCKET)
 	{
-		CELLNetWork::close(_cSock);
+		CELLNetWork::destorySocket(_cSock);
 	}
 	//CELLLog_Info("server=%d CELLClient %d::Close end", _serverID, _id);
 }
@@ -135,13 +139,12 @@ inline bool CELLClient::CheckSend(long long dt)
 	return false;
 }
 
-
-inline int CELLClient::SendData(netmsg_DataHeader * pHeader)
+inline int CELLClient::SendData(netmsg_DataHeader *pHeader)
 {
 	return _sendBuf.WriteData(pHeader);
 }
 
-inline int CELLClient::SendData(const char * pData, int nLen)
+inline int CELLClient::SendData(const char *pData, int nLen)
 {
 	return _sendBuf.WriteData(pData, nLen);
 }
@@ -162,7 +165,7 @@ inline bool CELLClient::HasMsg()
 	return _recvBuf.hasMsg();
 }
 
-inline netmsg_DataHeader * CELLClient::FrontMsg()
+inline netmsg_DataHeader *CELLClient::FrontMsg()
 {
 	return _recvBuf.frontMsg();
 }
@@ -176,6 +179,5 @@ inline bool CELLClient::NeedWrite()
 {
 	return _sendBuf.NeedWrite();
 }
-
 
 #endif // _CELL_CLIENT_HPP_

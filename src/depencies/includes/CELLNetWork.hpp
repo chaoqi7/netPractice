@@ -24,24 +24,23 @@ private:
 		WSACleanup();
 #endif
 	}
+
 public:
 	static void Init()
 	{
 		static CELLNetWork obj;
 	}
 
-	static void close(SOCKET s)
+	static void destorySocket(SOCKET sockfd)
 	{
 #ifdef _WIN32
 		//断开 socket 连接
-		closesocket(s);
+		closesocket(sockfd);
 #else
 		//断开 socket 连接
-		close(s);
+		close(sockfd);
 #endif
-		s = INVALID_SOCKET;
 	}
 };
-
 
 #endif // _CELL_NET_WORK_H_

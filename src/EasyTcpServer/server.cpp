@@ -1,11 +1,11 @@
 ﻿
-#include "EasySelectServer.hpp"
+#include "EasyEpollServer.hpp"
 #include "CELLLog.hpp"
 #include "CELLReadStream.hpp"
 #include "CELLWriteStream.hpp"
 #include "CELLConfig.hpp"
 
-class MyServer : public EasySelectServer
+class MyServer : public EasyEpollServer
 {
 public:
 	MyServer()
@@ -14,17 +14,17 @@ public:
 		_bSendFull = CELLConfig::Instance().hasKey("-sendfull");
 		_bCheckMsgID = CELLConfig::Instance().hasKey("-checkMsgID");
 	}
-	void OnNetJoin(CELLClient* pClient) override
+	void OnNetJoin(CELLClient *pClient) override
 	{
 		EasyTcpServer::OnNetJoin(pClient);
 	}
 
-	void OnNetLeave(CELLClient* pClient) override
+	void OnNetLeave(CELLClient *pClient) override
 	{
 		EasyTcpServer::OnNetLeave(pClient);
 	}
 
-	void OnNetMsg(CellServer* pCellServer, CELLClient* pClient, netmsg_DataHeader* pHeader) override
+	void OnNetMsg(CellServer *pCellServer, CELLClient *pClient, netmsg_DataHeader *pHeader) override
 	{
 		EasyTcpServer::OnNetMsg(pCellServer, pClient, pHeader);
 		switch (pHeader->cmd)
@@ -33,14 +33,14 @@ public:
 		{
 			//重置心跳
 			pClient->ResetDTHeart();
-			netmsg_Login* pLogin = (netmsg_Login*)pHeader;
+			netmsg_Login *pLogin = (netmsg_Login *)pHeader;
 			//检查登录ID
 			if (_bCheckMsgID)
 			{
 				if (pLogin->msgID != pClient->_nRecvMsgID)
 				{
 					CELLLog_Error("OnNetMsg socket<%d> msgID<%d> _nRecvMsgID<%d> %d",
-						pClient->getSocketfd(), pLogin->msgID, pClient->_nRecvMsgID, pLogin->msgID - pClient->_nRecvMsgID);
+								  pClient->getSocketfd(), pLogin->msgID, pClient->_nRecvMsgID, pLogin->msgID - pClient->_nRecvMsgID);
 				}
 				++pClient->_nRecvMsgID;
 			}
@@ -60,7 +60,8 @@ public:
 						CELLLog_Warnning("<socket=%d> Send Full", pClient->getSocketfd());
 					}
 				}
-				else {
+				else
+				{
 					++pClient->_nSendMsgID;
 				}
 			}
@@ -68,10 +69,10 @@ public:
 		break;
 		case CMD_C2S_LOGOUT:
 		{
- 			netmsg_Logout* pLogout = (netmsg_Logout*)pHeader;
-// 			//CELLLog_Info("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s",
-// 			//	pLogout->dataLength, pLogout->userName);
-// 			//忽略登出消息的具体数据
+			netmsg_Logout *pLogout = (netmsg_Logout *)pHeader;
+			// 			//CELLLog_Info("收到命令:CMD_LOGINOUT, 数据长度:%d, userName:%s",
+			// 			//	pLogout->dataLength, pLogout->userName);
+			// 			//忽略登出消息的具体数据
 			netmsg_LogoutR ret;
 			pClient->SendData(&ret);
 		}
@@ -128,6 +129,7 @@ public:
 		break;
 		}
 	}
+
 private:
 	//收到消息后返回应答消息
 	bool _bSendBack = false;
@@ -137,14 +139,14 @@ private:
 	bool _bCheckMsgID = false;
 };
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
 	//日志
 	CELLLog::setLogPath("serverlog", "w", false);
 
 	//配置相关
 	CELLConfig::Instance().Init(argc, argv);
-	const char* strIP = CELLConfig::Instance().getStr("strIP", "127.0.0.1");
+	const char *strIP = CELLConfig::Instance().getStr("strIP", "127.0.0.1");
 	uint16_t nPort = (uint16_t)CELLConfig::Instance().getInt("nPort", 4567);
 	int nThread = CELLConfig::Instance().getInt("nThread", 4);
 
@@ -168,7 +170,8 @@ int main(int argc, char** argv)
 			CELLLog_Info("cmdThread need exit.");
 			break;
 		}
-		else {
+		else
+		{
 			CELLLog_Info("unknown command, input again.");
 		}
 	}
@@ -176,4 +179,3 @@ int main(int argc, char** argv)
 	CELLLog_Info("任务结束.");
 	return 0;
 }
-

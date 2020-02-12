@@ -15,39 +15,46 @@ class CellServer
 {
 public:
 	virtual ~CellServer();
-	void setObj(int id, INetEvent* netEvent);
-	void AddClient(CELLClient* pClient);
+	void setObj(int id, INetEvent *netEvent);
+	void AddClient(CELLClient *pClient);
 	size_t GetClientCount();
 	void Start();
 	//添加发送任务
-	void AddSendTask(CELLClient* pClient, netmsg_DataHeader* pHeader);
+	void AddSendTask(CELLClient *pClient, netmsg_DataHeader *pHeader);
+
 protected:
 	//通过select 检测可写，可读。
 	virtual bool DoNetEvents() = 0;
 	void Close();
+
 private:
-	void OnRun(CELLThread* pThread);
+	void OnRun(CELLThread *pThread);
 	void CleanClients();
 	//处理消息
 	void DoMsg();
 	//处理消息
-	virtual void OnNetMsg(CELLClient* pClient, netmsg_DataHeader* pHeader);
+	virtual void OnNetMsg(CELLClient *pClient, netmsg_DataHeader *pHeader);
 	//定时任务
 	void CheckTime();
+
 protected:
 	//接收数据
-	int RecvData(CELLClient* pClient);
+	int RecvData(CELLClient *pClient);
 	//有客户端退出
-	void OnClientLeave(CELLClient* pClient);
+	void OnClientLeave(CELLClient *pClient);
+	//
+	virtual void OnClientJoin(CELLClient *pClient);
+
 protected:
 	//客户端数据有变化
 	bool _clientChange = true;
 	//当前正在处理的客户端队列
-	std::vector<CELLClient*> _clients;
+	std::vector<CELLClient *> _clients;
 	//待处理队列
-	std::vector<CELLClient*> _clientsBuf;
+	std::vector<CELLClient *> _clientsBuf;
+
 private:
-	INetEvent* _pNetEvent = nullptr;
+	INetEvent *_pNetEvent = nullptr;
 	//待处理队列锁
 	std::mutex _mutex;
 	//发送消息子服务
@@ -59,7 +66,6 @@ private:
 
 	//子线程
 	CELLThread _thread;
-
 };
 
 CellServer::~CellServer()
@@ -67,13 +73,13 @@ CellServer::~CellServer()
 	Close();
 }
 
-void CellServer::setObj(int id, INetEvent* netEvent)
+void CellServer::setObj(int id, INetEvent *netEvent)
 {
 	_id = id;
 	_pNetEvent = netEvent;
 }
 
-inline void CellServer::AddClient(CELLClient * pClient)
+inline void CellServer::AddClient(CELLClient *pClient)
 {
 	////把新客户端登录消息广播给所有的客户端
 	//NewUserJoin userJoin;
@@ -90,14 +96,10 @@ inline size_t CellServer::GetClientCount()
 inline void CellServer::Start()
 {
 	_cellSendServer.Start(_id);
-	_thread.Start(nullptr, [this](CELLThread* pThread) {
-		OnRun(pThread);
-	}, [this](CELLThread* pThread) {
-		CleanClients();
-	});
+	_thread.Start(nullptr, [this](CELLThread *pThread) { OnRun(pThread); }, [this](CELLThread *pThread) { CleanClients(); });
 }
 
-inline void CellServer::AddSendTask(CELLClient * pClient, netmsg_DataHeader * pHeader)
+inline void CellServer::AddSendTask(CELLClient *pClient, netmsg_DataHeader *pHeader)
 {
 	_cellSendServer.AddTask([pClient, pHeader]() {
 		if (pClient && pHeader)
@@ -110,7 +112,7 @@ inline void CellServer::AddSendTask(CELLClient * pClient, netmsg_DataHeader * pH
 
 inline void CellServer::DoMsg()
 {
-	CELLClient* pClient = nullptr;
+	CELLClient *pClient = nullptr;
 	for (size_t n = 0; n < _clients.size(); n++)
 	{
 		pClient = _clients[n];
@@ -123,10 +125,10 @@ inline void CellServer::DoMsg()
 			OnNetMsg(pClient, pClient->FrontMsg());
 			pClient->PopFrontMsg();
 		}
-	}	
+	}
 }
 
-inline void CellServer::OnRun(CELLThread* pThread)
+inline void CellServer::OnRun(CELLThread *pThread)
 {
 	CELLLog_Debug("CellServer %d::OnRun start", _id);
 	while (pThread->IsRun())
@@ -138,10 +140,7 @@ inline void CellServer::OnRun(CELLThread* pThread)
 			{
 				pNewClient->SetServerID(_id);
 				_clients.push_back(pNewClient);
-				if (_pNetEvent)
-				{
-					_pNetEvent->OnNetJoin(pNewClient);
-				}
+				OnClientJoin(pNewClient);
 			}
 			_clientsBuf.clear();
 			_clientChange = true;
@@ -190,7 +189,7 @@ void CellServer::CheckTime()
 		//_clients[n]->CheckSend(dt);
 	}
 }
-inline void CellServer::OnClientLeave(CELLClient * pClient)
+inline void CellServer::OnClientLeave(CELLClient *pClient)
 {
 	CELLLog_Debug("CellServer::OnClientLeave fd=%d", pClient->getSocketfd());
 	_clientChange = true;
@@ -201,7 +200,16 @@ inline void CellServer::OnClientLeave(CELLClient * pClient)
 	delete pClient;
 }
 
-int CellServer::RecvData(CELLClient* pClient)
+inline void CellServer::OnClientJoin(CELLClient *pClient)
+{
+	//
+	if (_pNetEvent)
+	{
+		_pNetEvent->OnNetJoin(pClient);
+	}
+}
+
+int CellServer::RecvData(CELLClient *pClient)
 {
 	//读取消息
 	int nLen = pClient->ReadData();
@@ -213,7 +221,7 @@ int CellServer::RecvData(CELLClient* pClient)
 	return nLen;
 }
 
-void CellServer::OnNetMsg(CELLClient* pClient, netmsg_DataHeader * pHeader)
+void CellServer::OnNetMsg(CELLClient *pClient, netmsg_DataHeader *pHeader)
 {
 	if (_pNetEvent)
 	{

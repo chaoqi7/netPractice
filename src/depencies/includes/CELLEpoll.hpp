@@ -16,17 +16,17 @@
 class CELLEpoll
 {
 public:
-    create(int maxsize)
+    void create(int maxsize)
     {
         _maxEvent = maxsize;
         _epfd = epoll_create(_maxEvent);
         if (_epfd == EPOLL_ERROR)
         {
-			CELLLog_PError("epoll_create");
+            CELLLog_PError("epoll_create");
         }
         _pEvents = new epoll_event[_maxEvent];
     }
-	//增加对指定 socket 的事件监听
+    //增加对指定 socket 的事件监听
     int ctl(int op, SOCKET sock, uint32_t events)
     {
         epoll_event event = {};
@@ -35,7 +35,21 @@ public:
         int ret = epoll_ctl(_epfd, op, sock, &event);
         if (ret == EPOLL_ERROR)
         {
-			CELLLog_PError("epoll_ctl(epfd=%d, op=%d, sock=%d) fail.\n", _epfd, op, sock);
+            CELLLog_PError("epoll_ctl(epfd=%d, op=%d, sock=%d) fail.\n", _epfd, op, sock);
+        }
+        return ret;
+    }
+
+    int ctl(int op, CELLClient *pClient, uint32_t events)
+    {
+        epoll_event event = {};
+        event.data.ptr = pClient;
+        event.events = events;
+        SOCKET curSock = pClient->getSocketfd();
+        int ret = epoll_ctl(_epfd, op, curSock, &event);
+        if (ret == EPOLL_ERROR)
+        {
+            CELLLog_PError("epoll_ctl(epfd=%d, op=%d, sock=%d) fail.\n", _epfd, op, curSock);
         }
         return ret;
     }
@@ -51,7 +65,7 @@ public:
         int ret = epoll_wait(_epfd, _pEvents, _maxEvent, timeout);
         if (ret == EPOLL_ERROR)
         {
-			CELLLog_PError("epoll_wait");
+            CELLLog_PError("epoll_wait");
         }
         return ret;
     }

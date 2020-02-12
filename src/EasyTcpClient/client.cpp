@@ -8,13 +8,13 @@
 #include <atomic>
 #include <vector>
 //服务器IP地址
-const char* strIP = "127.0.0.1";
+const char *strIP = "127.0.0.1";
 //服务器端口
 uint16_t nPort = 4567;
 //发送线程数量
-int nThread = 1;
+int nThread = 4;
 //客户端数量
-int nClient = 1;
+int nClient = 200;
 //客户端每次发几条消息
 int nMsg = 1;
 //写入消息到缓冲区的间隔时间
@@ -25,7 +25,6 @@ int nWorkSleep = 1;
 int nSendBuffSize = SEND_BUF_SIZE;
 //客户端接收缓冲区大小
 int nRecvBuffSize = RECV_BUF_SIZE;
-
 
 std::atomic<int> g_sendCount(0);
 std::atomic<int> g_readyCount(0);
@@ -39,19 +38,19 @@ public:
 		_bCheckMsgID = CELLConfig::Instance().hasKey("-checkMsgID");
 	}
 
-	void OnNetMsg(netmsg_DataHeader* pHeader) override 
+	void OnNetMsg(netmsg_DataHeader *pHeader) override
 	{
 		switch (pHeader->cmd)
 		{
 		case CMD_S2C_LOGIN:
 		{
-			netmsg_LoginR* login = (netmsg_LoginR*)pHeader;
+			netmsg_LoginR *login = (netmsg_LoginR *)pHeader;
 			if (_bCheckMsgID)
 			{
 				if (login->msgID != _nRecvMsgID)
 				{
 					CELLLog_Error("OnNetMsg socket<%d> msgID<%d> _nRecvMsgID<%d> %d",
-						(int)_pClient->getSocketfd(), login->msgID, _nRecvMsgID, login->msgID - _nRecvMsgID);
+								  (int)_pClient->getSocketfd(), login->msgID, _nRecvMsgID, login->msgID - _nRecvMsgID);
 				}
 				_nRecvMsgID++;
 			}
@@ -59,14 +58,14 @@ public:
 		break;
 		case CMD_S2C_LOGOUT:
 		{
-			netmsg_LogoutR* pLogoutResult = (netmsg_LogoutR*)pHeader;
+			netmsg_LogoutR *pLogoutResult = (netmsg_LogoutR *)pHeader;
 			//CELLLog_Info("<sockt=%d>收到服务器返回消息 CMD_LOGINOUT_RESULT, Result:%d, len:%d",
 			//	(int)_sock, pLogoutResult->result, pLogoutResult->dataLength);
 		}
 		break;
 		case CMD_S2C_NEW_USER_JOIN:
 		{
-			netmsg_NewUserJoin* pUserJoin = (netmsg_NewUserJoin*)pHeader;
+			netmsg_NewUserJoin *pUserJoin = (netmsg_NewUserJoin *)pHeader;
 			//CELLLog_Info("<sockt=%d>收到服务器返回消息 CMD_NEW_USER_JOIN, sock:%d, len:%d",
 			//	(int)_sock, pUserJoin->sock, pUserJoin->dataLength);
 		}
@@ -82,7 +81,7 @@ public:
 		}
 	}
 
-	int sendTest(netmsg_Login* login)
+	int sendTest(netmsg_Login *login)
 	{
 		int ret = 0;
 		if (_nSendCount > 0)
@@ -122,12 +121,12 @@ private:
 	bool _bCheckMsgID = 0;
 };
 
-void workThread(CELLThread* pThread, int id)
-{	
-	std::vector<MyClient*> clients(nClient);
+void workThread(CELLThread *pThread, int id)
+{
+	std::vector<MyClient *> clients(nClient);
 	int begin = 0;
 	int end = nClient;
-	
+
 	CELLLog_Info("workThread thread<%d>,nClient<%d> start", id, nClient);
 	for (int n = begin; n < end; n++)
 	{
@@ -151,7 +150,7 @@ void workThread(CELLThread* pThread, int id)
 	}
 
 	CELLLog_Info("workThread thread<%d>, Connect<begin=%d, end=%d, nConnect=%d>",
-		id, begin, end, (int)g_nConnect);
+				 id, begin, end, (int)g_nConnect);
 
 	//所有连接完成
 	g_readyCount++;
@@ -218,44 +217,45 @@ void workThread(CELLThread* pThread, int id)
 	--g_readyCount;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
 	CELLLog::setLogPath("clientLog", "w", false);
 
 	CELLConfig::Instance().Init(argc, argv);
 
 	strIP = CELLConfig::Instance().getStr("strIP", "127.0.0.1");
-	nPort = (uint16_t)CELLConfig::Instance().getInt("nPort", 4567);
-	nThread = CELLConfig::Instance().getInt("nThread", 1);
-	nClient = CELLConfig::Instance().getInt("nClient", 100);
-	nMsg = CELLConfig::Instance().getInt("nMsg", 10);
-	nSendSleep = CELLConfig::Instance().getInt("nSendSleep", 100);
+	nPort = (uint16_t)CELLConfig::Instance().getInt("nPort", nPort);
+	nThread = CELLConfig::Instance().getInt("nThread", nThread);
+	nClient = CELLConfig::Instance().getInt("nClient", nClient);
+	nMsg = CELLConfig::Instance().getInt("nMsg", nMsg);
+	nSendSleep = CELLConfig::Instance().getInt("nSendSleep", nSendSleep);
 	nSendBuffSize = CELLConfig::Instance().getInt("nSendBuffSize", SEND_BUF_SIZE);
 	nRecvBuffSize = CELLConfig::Instance().getInt("nRecvBuffSize", RECV_BUF_SIZE);
 	//UI 线程
 	CELLThread tCmd;
-	tCmd.Start(nullptr, [](CELLThread* pThread)
-	{
+	tCmd.Start(nullptr, [](CELLThread *pThread) {
 		while (pThread->IsRun())
 		{
 			char cmdBuf[256] = {};
 			scanf("%s", cmdBuf);
-			if (0 == strcmp(cmdBuf, "exit")) {
+			if (0 == strcmp(cmdBuf, "exit"))
+			{
 				pThread->Exit();
 				CELLLog_Info("退出 cmdThread 线程");
 				break;
 			}
-			else {
+			else
+			{
 				CELLLog_Info("不支持的命令");
 			}
 		}
 	});
 
-	std::vector<CELLThread*> threads;
+	std::vector<CELLThread *> threads;
 	for (int n = 0; n < nThread; n++)
 	{
-		CELLThread* t = new CELLThread();
-		t->Start(nullptr, [n](CELLThread* pThread) {
+		CELLThread *t = new CELLThread();
+		t->Start(nullptr, [n](CELLThread *pThread) {
 			workThread(pThread, n + 1);
 		});
 		threads.push_back(t);
@@ -268,7 +268,7 @@ int main(int argc, char** argv)
 		if (t >= 1.0)
 		{
 			CELLLog_Info("thread<%d>, clients<%d>, connect<%d>, time<%lf>, send<%d>",
-				nThread, nClient, (int)g_nConnect, t, (int)g_sendCount);
+						 nThread, nClient, (int)g_nConnect, t, (int)g_sendCount);
 			g_sendCount = 0;
 			tTime.update();
 		}
@@ -284,5 +284,3 @@ int main(int argc, char** argv)
 	CELLLog_Info("exit the Main Thread.");
 	return 0;
 }
-
-

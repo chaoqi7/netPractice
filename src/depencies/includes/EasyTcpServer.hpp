@@ -18,13 +18,13 @@ public:
 	EasyTcpServer();
 	virtual ~EasyTcpServer();
 	//连接远程服务器
-	int Bind(const char* ip, unsigned short port);
+	int Bind(const char *ip, unsigned short port);
 	//监听
 	int Listen(int backlog);
 	//关闭连接
 	void Close();
 	//创建工作子线程
-	template<typename ServerT>
+	template <typename ServerT>
 	void Start(int cellServerCount = 1)
 	{
 		for (int n = 0; n < cellServerCount; n++)
@@ -35,50 +35,55 @@ public:
 			ser->Start();
 		}
 
-		_thread.Start(nullptr, [this](CELLThread* pThread) {
+		_thread.Start(nullptr, [this](CELLThread *pThread) {
 			OnRun(pThread);
-		}, nullptr);
+		},
+					  nullptr);
 	}
+
 public:
 	//继承的接口
-	void OnNetJoin(CELLClient* pClient) override
+	void OnNetJoin(CELLClient *pClient) override
 	{
 		_clientCount++;
 		//CELLLog_Info("EasyTcpServer OnNetJoin.......");
 	}
 
-	void OnNetLeave(CELLClient* pClient) override
+	void OnNetLeave(CELLClient *pClient) override
 	{
 		_clientCount--;
 		//CELLLog_Info("EasyTcpServer OnNetLeave.......");
 	}
 
-	void OnNetMsg(CellServer* pCellServer, CELLClient* pClient, netmsg_DataHeader* pHeader) override
+	void OnNetMsg(CellServer *pCellServer, CELLClient *pClient, netmsg_DataHeader *pHeader) override
 	{
 		_msgCount++;
 		//CELLLog_Info("EasyTcpServer OnNetMsg.......");
 	}
-	void OnNetRecv(CELLClient* pClient) override
+	void OnNetRecv(CELLClient *pClient) override
 	{
 		_recvCount++;
 	}
+
 private:
 	//初始化 socket
 	void InitSocket();
 	//添加新客户端到子线程
-	void AddClient2CellServer(CELLClient* pClient);
+	void AddClient2CellServer(CELLClient *pClient);
+
 protected:
 	//工作函数
-	virtual void OnRun(CELLThread* pThread) = 0;
+	virtual void OnRun(CELLThread *pThread) = 0;
 	//接收客户端连接
 	int Accept();
 	//统计包数据
 	void time4msg();
 	SOCKET socketfd() { return _sock; }
+
 private:
 	SOCKET _sock;
 	//子线程队列
-	std::vector<CellServer*> _cellServers;
+	std::vector<CellServer *> _cellServers;
 	CELLTimeStamp _tTime;
 	CELLThread _thread;
 	//为客户端分配的发送缓冲区大小
@@ -87,10 +92,11 @@ private:
 	int _nRecvBufSize = 0;
 	//客户端连接上限
 	int _nMaxClient = 0;
+
 protected:
-	std::atomic<int> _clientCount{ 0 };
-	std::atomic<int> _msgCount{ 0 };
-	std::atomic<int> _recvCount{ 0 };
+	std::atomic<int> _clientCount{0};
+	std::atomic<int> _msgCount{0};
+	std::atomic<int> _recvCount{0};
 };
 
 EasyTcpServer::EasyTcpServer()
@@ -98,7 +104,7 @@ EasyTcpServer::EasyTcpServer()
 	_sock = INVALID_SOCKET;
 	_nSendBufSize = CELLConfig::Instance().getInt("nSendBuffSize", SEND_BUF_SIZE);
 	_nRecvBufSize = CELLConfig::Instance().getInt("nRecvBuffSize", RECV_BUF_SIZE);
-	_nMaxClient = CELLConfig::Instance().getInt("nMaxClient", FD_SETSIZE);
+	_nMaxClient = 10240; //CELLConfig::Instance().getInt("nMaxClient", FD_SETSIZE);
 }
 
 EasyTcpServer::~EasyTcpServer()
@@ -121,12 +127,13 @@ void EasyTcpServer::InitSocket()
 	{
 		CELLLog_PError("绑定端口失败.");
 	}
-	else {
+	else
+	{
 		CELLLog_Info("绑定 socket=%d 成功.", (int)_sock);
 	}
 }
 
-inline int EasyTcpServer::Bind(const char * ip, unsigned short port)
+inline int EasyTcpServer::Bind(const char *ip, unsigned short port)
 {
 	if (_sock == INVALID_SOCKET)
 	{
@@ -140,13 +147,14 @@ inline int EasyTcpServer::Bind(const char * ip, unsigned short port)
 #else
 	_sAddr.sin_addr.s_addr = ip ? inet_addr(ip) : INADDR_ANY;
 #endif
-	int ret = bind(_sock, (sockaddr*)&_sAddr, sizeof(_sAddr));
+	int ret = bind(_sock, (sockaddr *)&_sAddr, sizeof(_sAddr));
 	if (SOCKET_ERROR == ret)
 	{
 		CELLLog_PError("绑定<%s, %d>错误.", ip, port);
 		return -1;
 	}
-	else {
+	else
+	{
 		CELLLog_Info("绑定<%s, %d>成功.", ip, port);
 	}
 	return ret;
@@ -162,7 +170,8 @@ int EasyTcpServer::Listen(int backlog)
 		{
 			CELLLog_PError("监听网络<socket=%d>端口错误.", (int)_sock);
 		}
-		else {
+		else
+		{
 			CELLLog_Info("监听网络<socket=%d>端口成功.", (int)_sock);
 		}
 	}
@@ -175,10 +184,10 @@ int EasyTcpServer::Accept()
 	sockaddr_in _cAddr = {};
 #ifdef _WIN32
 	int _cAddrLen = sizeof(sockaddr_in);
-#else 
+#else
 	socklen_t _cAddrLen = sizeof(sockaddr_in);
 #endif // _WIN32
-	SOCKET cSock = accept(_sock, (sockaddr*)&_cAddr, &_cAddrLen);
+	SOCKET cSock = accept(_sock, (sockaddr *)&_cAddr, &_cAddrLen);
 	if (INVALID_SOCKET == cSock)
 	{
 		CELLLog_PError("接受到无效客户端SOCKET");
@@ -190,8 +199,9 @@ int EasyTcpServer::Accept()
 		//把新客户端 socket 添加到全局数据里面
 		AddClient2CellServer(new CELLClient(cSock, _nSendBufSize, _nRecvBufSize));
 	}
-	else {
-		CELLNetWork::close(cSock);
+	else
+	{
+		CELLNetWork::destorySocket(cSock);
 		CELLLog_Error("Accept to nMaxClient");
 	}
 
@@ -209,19 +219,19 @@ void EasyTcpServer::Close()
 			delete ser;
 		}
 		_cellServers.clear();
-		CELLNetWork::close(_sock);
+		CELLNetWork::destorySocket(_sock);
 	}
 	CELLLog_Info("EasyTcpServer::Close end");
 }
 
-void EasyTcpServer::OnRun(CELLThread* pThread)
+void EasyTcpServer::OnRun(CELLThread *pThread)
 {
 	CELLFDSet fdRead;
 
 	while (pThread->IsRun())
 	{
 		time4msg();
-		
+
 		fdRead.zero();
 		//把服务器 socket 加入监听
 		fdRead.add(_sock);
@@ -229,7 +239,7 @@ void EasyTcpServer::OnRun(CELLThread* pThread)
 		NULL:一直阻塞
 		timeval 只能精确到秒
 		*/
-		timeval t = { 0, 1 };
+		timeval t = {0, 1};
 		int ret = select((int)_sock + 1, fdRead.fdset(), nullptr, nullptr, &t);
 		if (SOCKET_ERROR == ret)
 		{
@@ -237,7 +247,8 @@ void EasyTcpServer::OnRun(CELLThread* pThread)
 			pThread->Exit();
 			break;
 		}
-		else if (0 == ret) {
+		else if (0 == ret)
+		{
 			//CELLLog_Info("select timeout.");
 			//continue;
 		}
@@ -249,10 +260,10 @@ void EasyTcpServer::OnRun(CELLThread* pThread)
 	}
 }
 
-inline void EasyTcpServer::AddClient2CellServer(CELLClient * pClient)
+inline void EasyTcpServer::AddClient2CellServer(CELLClient *pClient)
 {
 	//找出最小客户端数据，添加进去
-	CellServer* pMinServer = _cellServers[0];
+	CellServer *pMinServer = _cellServers[0];
 	for (size_t n = 1; n < _cellServers.size(); n++)
 	{
 		if (pMinServer->GetClientCount() > _cellServers[n]->GetClientCount())
@@ -269,7 +280,7 @@ inline void EasyTcpServer::time4msg()
 	if (t > 1.0)
 	{
 		CELLLog_Info("time<%lf>, thread<%d>, clients<%d>, recv<%d>, msg<%d>",
-			t, (int)_cellServers.size(), (int)_clientCount, (int)_recvCount, (int)_msgCount);
+					 t, (int)_cellServers.size(), (int)_clientCount, (int)_recvCount, (int)_msgCount);
 		_tTime.update();
 		_msgCount = 0;
 		_recvCount = 0;
