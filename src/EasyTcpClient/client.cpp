@@ -1,6 +1,6 @@
 ﻿
 #include "NetMsg.h"
-#include "EasyTcpClient.hpp"
+#include "EasyEpollClient.hpp"
 #include "CELLTimeStamp.hpp"
 #include "CELLConfig.hpp"
 
@@ -12,13 +12,13 @@ const char *strIP = "127.0.0.1";
 //服务器端口
 uint16_t nPort = 4567;
 //发送线程数量
-int nThread = 4;
+int nThread = 1;
 //客户端数量
-int nClient = 200;
+int nClient = 4000;
 //客户端每次发几条消息
 int nMsg = 1;
 //写入消息到缓冲区的间隔时间
-int nSendSleep = 1;
+int nSendSleep = 10;
 //工作休眠时间
 int nWorkSleep = 1;
 //客户端发送缓冲区大小
@@ -30,7 +30,7 @@ std::atomic<int> g_sendCount(0);
 std::atomic<int> g_readyCount(0);
 std::atomic<int> g_nConnect(0);
 
-class MyClient : public EasyTcpClient
+class MyClient : public EasyEpollClient
 {
 public:
 	MyClient()

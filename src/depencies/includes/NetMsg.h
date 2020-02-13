@@ -3,11 +3,11 @@
 
 //接收缓冲区大小
 #ifndef RECV_BUF_SIZE
-#define RECV_BUF_SIZE 81920
+#define RECV_BUF_SIZE 20480
 #endif // RECV_BUF_SIZE
 //发送缓冲区大小
 #ifndef SEND_BUF_SIZE
-#define SEND_BUF_SIZE 81920
+#define SEND_BUF_SIZE 20480
 #endif // SEND_BUF_SIZE
 
 enum CMD
@@ -25,7 +25,7 @@ enum CMD
 };
 
 struct netmsg_DataHeader
-{	
+{
 	netmsg_DataHeader()
 	{
 		this->dataLength = sizeof(netmsg_DataHeader);

@@ -17,25 +17,26 @@ public:
 
 	bool has(SOCKET s);
 
-	fd_set* fdset();
+	fd_set *fdset();
 
-	void copyfrom(CELLFDSet& src);
+	void copyfrom(CELLFDSet &src);
 
 	size_t fdsize();
+
 private:
-	fd_set* _pfd_set = nullptr;
+	fd_set *_pfd_set = nullptr;
 	size_t _nfdsize = 0;
 };
 
 CELLFDSet::CELLFDSet()
 {
-	int nSocketNum = FD_SETSIZE;
+	int nSocketNum = 10240;
 #ifdef _WIN32
-	_nfdsize = sizeof(u_int) + sizeof(SOCKET)*nSocketNum;
+	_nfdsize = sizeof(u_int) + sizeof(SOCKET) * nSocketNum;
 #else
 	_nfdsize = nSocketNum / (8 * sizeof(char));
 #endif
-	_pfd_set = (fd_set*)new char[_nfdsize];
+	_pfd_set = (fd_set *)new char[_nfdsize];
 	memset(_pfd_set, 0, _nfdsize);
 }
 
@@ -67,11 +68,11 @@ inline bool CELLFDSet::has(SOCKET s)
 {
 	return FD_ISSET(s, _pfd_set);
 }
-inline fd_set * CELLFDSet::fdset()
+inline fd_set *CELLFDSet::fdset()
 {
 	return _pfd_set;
 }
-inline void CELLFDSet::copyfrom(CELLFDSet& src)
+inline void CELLFDSet::copyfrom(CELLFDSet &src)
 {
 	memcpy(_pfd_set, src.fdset(), src.fdsize());
 }

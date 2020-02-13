@@ -12,25 +12,31 @@ public:
 	EasyTcpClient();
 	virtual ~EasyTcpClient();
 	//连接远程服务器
-	int Connect(const char* ip, unsigned short port);
+	int Connect(const char *ip, unsigned short port);
 	//初始化 socket
 	SOCKET InitSocket(int sendSize, int recvSize);
 	//关闭连接
-	void Close();	
-	//循环执行任务（当前使用select)
-	bool OnRun(int microseconds);
+	void Close();
 	//是否运行
 	bool IsRun();
 	//发送消息
-	int SendData(netmsg_DataHeader* pHeader);
-	int SendData(const char* pData, int nLen);
-private:
+	int SendData(netmsg_DataHeader *pHeader);
+	int SendData(const char *pData, int nLen);
 	//接收数据
 	int RecvData();
-	//处理消息
-	virtual void OnNetMsg(netmsg_DataHeader* pHeader) = 0;
+
 protected:
-	CELLClient* _pClient = nullptr;
+	//循环执行任务
+	virtual bool OnRun(int microseconds) = 0;
+	//完成初始化 SOCKET
+	virtual void OnInitSocketComplete() {}
+	//完成连接服务端
+	virtual void OnConnectComplete() {}
+	//处理具体的网络消息
+	virtual void OnNetMsg(netmsg_DataHeader *pHeader) = 0;
+
+protected:
+	CELLClient *_pClient = nullptr;
 	bool _bConnect = false;
 };
 
@@ -51,7 +57,7 @@ inline SOCKET EasyTcpClient::InitSocket(int sendSize, int recvSize)
 		CELLLog_Info("InitSocket Close old socket=%d.", (int)_pClient->getSocketfd());
 		Close();
 	}
-	
+
 	CELLNetWork::Init();
 
 	SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -59,14 +65,16 @@ inline SOCKET EasyTcpClient::InitSocket(int sendSize, int recvSize)
 	{
 		CELLLog_PError("create socket.");
 	}
-	else {
+	else
+	{
 		//CELLLog_Debug("创建 socket=%d 成功.", (int)sock);
 		_pClient = new CELLClient(sock, sendSize, recvSize);
+		OnInitSocketComplete();
 	}
 	return sock;
 }
 
-inline int EasyTcpClient::Connect(const char * ip, unsigned short port)
+inline int EasyTcpClient::Connect(const char *ip, unsigned short port)
 {
 	if (!_pClient)
 	{
@@ -85,16 +93,18 @@ inline int EasyTcpClient::Connect(const char * ip, unsigned short port)
 #else
 	_sin.sin_addr.s_addr = inet_addr(ip);
 #endif
-	int ret = connect(_pClient->getSocketfd(), (sockaddr*)&_sin, sizeof(sockaddr_in));
+	int ret = connect(_pClient->getSocketfd(), (sockaddr *)&_sin, sizeof(sockaddr_in));
 	if (SOCKET_ERROR == ret)
 	{
-		CELLLog_PError("<sockt=%d> connect <%s:%d> failed.", 
-			(int)_pClient->getSocketfd(), ip, port);
+		CELLLog_PError("<sockt=%d> connect <%s:%d> failed.",
+					   (int)_pClient->getSocketfd(), ip, port);
 		return -1;
 	}
-	else {
+	else
+	{
 		//CELLLog_Info("<sockt=%d> connect <%s:%d> success.", (int)_sock, ip, port);
 		_bConnect = true;
+		OnConnectComplete();
 	}
 	return ret;
 }
@@ -124,17 +134,18 @@ inline bool EasyTcpClient::OnRun(int microseconds)
 		FD_ZERO(&fdRead);
 		FD_SET(cSock, &fdRead);
 
-		fd_set fdWrite;			
-		FD_ZERO(&fdWrite);		
+		fd_set fdWrite;
+		FD_ZERO(&fdWrite);
 
-		timeval t = { 0, microseconds };
+		timeval t = {0, microseconds};
 		int ret = 0;
 		if (_pClient->NeedWrite())
-		{			
+		{
 			FD_SET(cSock, &fdWrite);
 			ret = select((int)cSock + 1, &fdRead, &fdWrite, nullptr, &t);
 		}
-		else {
+		else
+		{
 			ret = select((int)cSock + 1, &fdRead, nullptr, nullptr, &t);
 		}
 
@@ -144,7 +155,8 @@ inline bool EasyTcpClient::OnRun(int microseconds)
 			Close();
 			return false;
 		}
-		else if (ret == 0) {
+		else if (ret == 0)
+		{
 			//CELLLog_Info("select time out.");
 			//continue;
 		}
@@ -173,12 +185,12 @@ inline bool EasyTcpClient::OnRun(int microseconds)
 	return false;
 }
 
-inline int EasyTcpClient::SendData(netmsg_DataHeader * pHeader)
+inline int EasyTcpClient::SendData(netmsg_DataHeader *pHeader)
 {
-	return SendData((const char*)pHeader, pHeader->dataLength);
+	return SendData((const char *)pHeader, pHeader->dataLength);
 }
 
-inline int EasyTcpClient::SendData(const char * pData, int nLen)
+inline int EasyTcpClient::SendData(const char *pData, int nLen)
 {
 	if (IsRun())
 	{

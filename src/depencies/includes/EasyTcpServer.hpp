@@ -104,7 +104,7 @@ EasyTcpServer::EasyTcpServer()
 	_sock = INVALID_SOCKET;
 	_nSendBufSize = CELLConfig::Instance().getInt("nSendBuffSize", SEND_BUF_SIZE);
 	_nRecvBufSize = CELLConfig::Instance().getInt("nRecvBuffSize", RECV_BUF_SIZE);
-	_nMaxClient = 10240; //CELLConfig::Instance().getInt("nMaxClient", FD_SETSIZE);
+	_nMaxClient = CELLConfig::Instance().getInt("nMaxClient", 10240);
 }
 
 EasyTcpServer::~EasyTcpServer()
