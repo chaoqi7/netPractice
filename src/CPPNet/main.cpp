@@ -2,7 +2,7 @@
 #define _CPP_NET_H_
 
 #include "CELLReadStream.hpp"
-#include "EasyTcpClient.hpp"
+#include "EasySelectClient.hpp"
 
 #ifdef _WIN32
 #define EXPORT_DLL _declspec(dllexport)
@@ -15,7 +15,7 @@ extern "C"
 	typedef void(*OnNetMsgCallback)(void* csObj, void* pData, int nLen);
 }
 
-class NativeTCPClient : public EasyTcpClient
+class NativeTCPClient : public EasySelectClient
 {
 public:
 	void OnNetMsg(netmsg_DataHeader* pHeader) override

@@ -2,9 +2,9 @@
 #include "CELLWriteStream.hpp"
 #include "CELLReadStream.hpp"
 #include "NetMsg.h"
-#include "EasyTcpClient.hpp"
+#include "EasySelectClient.hpp"
 
-class MyClient : public EasyTcpClient
+class MyClient : public EasySelectClient
 {
 public:
 	void OnNetMsg(netmsg_DataHeader* pHeader) override
@@ -65,6 +65,8 @@ public:
 
 int main(int argc, char** argv)
 {
+	CELLLog::setLogPath("helloSocket", "w", false);
+
 	CELLWriteStream w;
 	w.WriteNetCMD(CMD_C2S_STREAM);
 	w.WriteInt8(1);
@@ -84,11 +86,14 @@ int main(int argc, char** argv)
 
 	MyClient my;
 	my.Connect("127.0.0.1", 4567);
-	my.SendData(w.Data(), w.Length());
+	
 	while (my.IsRun())
 	{
+		
 		my.OnRun(1);
+		my.SendData(w.Data(), w.Length());
 
+		CELLThread::Sleep(999);
 	}
 
 	//CELLReadStream r = 

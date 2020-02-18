@@ -1,6 +1,6 @@
 ﻿
 #include "NetMsg.h"
-#include "EasyEpollClient.hpp"
+#include "EasySelectClient.hpp"
 #include "CELLTimeStamp.hpp"
 #include "CELLConfig.hpp"
 
@@ -14,7 +14,7 @@ uint16_t nPort = 4567;
 //发送线程数量
 int nThread = 1;
 //客户端数量
-int nClient = 4000;
+int nClient = 1;
 //客户端每次发几条消息
 int nMsg = 1;
 //写入消息到缓冲区的间隔时间
@@ -30,7 +30,7 @@ std::atomic<int> g_sendCount(0);
 std::atomic<int> g_readyCount(0);
 std::atomic<int> g_nConnect(0);
 
-class MyClient : public EasyEpollClient
+class MyClient : public EasySelectClient
 {
 public:
 	MyClient()

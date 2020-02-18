@@ -1,6 +1,8 @@
 ﻿#ifndef _EASY_EPOLL_SERVER_HPP_
 #define _EASY_EPOLL_SERVER_HPP_
 
+#ifdef __linux__
+
 #include "EasyTcpServer.hpp"
 #include "CELLEpoll.hpp"
 #include "CELLEpollServer.hpp"
@@ -49,5 +51,7 @@ protected:
 		}
 	}
 };
+
+#endif // __linux__
 
 #endif // !_EASY_EPOLL_SERVER_HPP_
