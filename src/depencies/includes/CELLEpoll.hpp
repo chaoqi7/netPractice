@@ -45,7 +45,7 @@ public:
         epoll_event event = {};
         event.data.ptr = pClient;
         event.events = events;
-        SOCKET curSock = pClient->getSocketfd();
+        SOCKET curSock = pClient->socketfd();
         int ret = epoll_ctl(_epfd, op, curSock, &event);
         if (ret == EPOLL_ERROR)
         {

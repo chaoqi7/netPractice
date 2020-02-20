@@ -19,7 +19,7 @@ inline bool EasySelectClient::OnRun(int microseconds)
 {
 	if (IsRun())
 	{
-		SOCKET cSock = _pClient->getSocketfd();
+		SOCKET cSock = _pClient->socketfd();
 		_fdRead.zero();
 		_fdRead.add(cSock);
 

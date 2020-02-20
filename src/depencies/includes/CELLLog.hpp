@@ -206,7 +206,7 @@ inline void CELLLog::setLogPath(const char *pName, const char *pMode, bool hasDa
 #endif
 
 #ifndef CELLLog_Info
-#define CELLLog_Info(...) CELLLog::Debug(__VA_ARGS__)
+#define CELLLog_Info(...) CELLLog::Info(__VA_ARGS__)
 #endif
 #ifndef CELLLog_Warnning
 #define CELLLog_Warnning(...) CELLLog::Warning(__VA_ARGS__)

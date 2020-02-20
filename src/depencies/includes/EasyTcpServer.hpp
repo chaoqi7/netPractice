@@ -68,10 +68,10 @@ public:
 private:
 	//初始化 socket
 	void InitSocket();
-	//添加新客户端到子线程
-	void AddClient2CellServer(CELLClient *pClient);
 
 protected:
+	//添加新客户端到子线程
+	void AddClient2CellServer(CELLClient *pClient);
 	//工作函数
 	virtual void OnRun(CELLThread *pThread) = 0;
 	//接收客户端连接
@@ -86,6 +86,7 @@ private:
 	std::vector<CellServer *> _cellServers;
 	CELLTimeStamp _tTime;
 	CELLThread _thread;
+protected:
 	//为客户端分配的发送缓冲区大小
 	int _nSendBufSize = 0;
 	//为客户端分配的接收缓冲区大小

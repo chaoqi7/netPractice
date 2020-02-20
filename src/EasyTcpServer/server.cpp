@@ -1,11 +1,12 @@
 ﻿
-#include "EasySelectServer.hpp"
+//#include "EasySelectServer.hpp"
+#include "EasyIOCPServer.hpp"
 #include "CELLLog.hpp"
 #include "CELLReadStream.hpp"
 #include "CELLWriteStream.hpp"
 #include "CELLConfig.hpp"
 
-class MyServer : public EasySelectServer
+class MyServer : public EasyIOCPServer
 {
 public:
 	MyServer()
@@ -40,7 +41,8 @@ public:
 				if (pLogin->msgID != pClient->_nRecvMsgID)
 				{
 					CELLLog_Error("OnNetMsg socket<%d> msgID<%d> _nRecvMsgID<%d> %d",
-								  pClient->getSocketfd(), pLogin->msgID, pClient->_nRecvMsgID, pLogin->msgID - pClient->_nRecvMsgID);
+						pClient->socketfd(), pLogin->msgID, pClient->_nRecvMsgID, 
+						pLogin->msgID - pClient->_nRecvMsgID);
 				}
 				++pClient->_nRecvMsgID;
 			}
@@ -57,7 +59,7 @@ public:
 				{
 					if (_bSendFull)
 					{
-						CELLLog_Warnning("<socket=%d> Send Full", pClient->getSocketfd());
+						CELLLog_Warnning("<socket=%d> Send Full", pClient->socketfd());
 					}
 				}
 				else

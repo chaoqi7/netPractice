@@ -4,10 +4,10 @@
 #include "CELLFDSet.hpp"
 #include "CELLServer.hpp"
 
-class CellSelectServer : public CellServer
+class CELLSelectServer : public CellServer
 {
 public:
-	~CellSelectServer()
+	~CELLSelectServer()
 	{
 		Close();
 	}
@@ -26,21 +26,21 @@ private:
 	SOCKET _maxSocket;
 };
 
-inline bool CellSelectServer::DoNetEvents()
+inline bool CELLSelectServer::DoNetEvents()
 {
 	if (_clientChange)
 	{
 		_clientChange = false;
 		_fdRead.zero();
 		//nfds 当前 socket 最大值+1（兼容贝克利套接字）. 在 windows 里面可以设置为 0.
-		_maxSocket = _clients[0]->getSocketfd();
+		_maxSocket = _clients[0]->socketfd();
 		//把全局客户端数据加入可读监听部分
 		for (size_t n = 0; n < _clients.size(); n++)
 		{
-			_fdRead.add(_clients[n]->getSocketfd());
-			if (_maxSocket < _clients[n]->getSocketfd())
+			_fdRead.add(_clients[n]->socketfd());
+			if (_maxSocket < _clients[n]->socketfd())
 			{
-				_maxSocket = _clients[n]->getSocketfd();
+				_maxSocket = _clients[n]->socketfd();
 			}
 		}
 		_fdReadBack.copyfrom(_fdRead);
@@ -57,7 +57,7 @@ inline bool CellSelectServer::DoNetEvents()
 		if (_clients[n]->NeedWrite())
 		{
 			bNeedWrite = true;
-			_fdWrite.add(_clients[n]->getSocketfd());
+			_fdWrite.add(_clients[n]->socketfd());
 		}
 	}
 	/*
@@ -91,11 +91,11 @@ inline bool CellSelectServer::DoNetEvents()
 	return true;
 }
 
-inline void CellSelectServer::HandleReadEvent()
+inline void CELLSelectServer::HandleReadEvent()
 {
 	for (size_t n = 0; n < _clients.size(); n++)
 	{
-		SOCKET curfd = _clients[n]->getSocketfd();
+		SOCKET curfd = _clients[n]->socketfd();
 		if (_fdRead.has(curfd))
 		{
 			//FD_CLR(curfd, &fdRead);
@@ -113,11 +113,11 @@ inline void CellSelectServer::HandleReadEvent()
 	}
 }
 
-inline void CellSelectServer::HandleWriteEvent()
+inline void CELLSelectServer::HandleWriteEvent()
 {
 	for (size_t n = 0; n < _clients.size(); n++)
 	{
-		SOCKET curfd = _clients[n]->getSocketfd();
+		SOCKET curfd = _clients[n]->socketfd();
 		if (_clients[n]->NeedWrite() && _fdWrite.has(curfd))
 		{
 			//FD_CLR(curfd, &fdWrite);

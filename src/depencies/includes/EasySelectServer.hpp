@@ -14,7 +14,7 @@ public:
 	}
 	void Start(int cellServerCount = 1)
 	{
-		EasyTcpServer::Start<CellSelectServer>(cellServerCount);
+		EasyTcpServer::Start<CELLSelectServer>(cellServerCount);
 	}
 protected:
 

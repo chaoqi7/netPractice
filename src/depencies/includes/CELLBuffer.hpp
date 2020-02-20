@@ -3,6 +3,10 @@
 
 #include "CELL.hpp"
 
+//#ifdef _USE_IOCP_
+#include "CELLIOCP.hpp"
+//#endif
+
 class CELLBuffer
 {
 public:
@@ -12,6 +16,19 @@ public:
 	int push(const char* pData, int nLen);
 	//删除头部指定长度数据
 	void pop(int nLen);
+
+	char* data()
+	{
+		return _pBuf;
+	}
+	int dataLen()
+	{
+		return _nLast;
+	}
+	int capacity()
+	{
+		return _nCapacity;
+	}
 protected:
 	//缓冲区数据
 	char* _pBuf = nullptr;

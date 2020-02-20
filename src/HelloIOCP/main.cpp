@@ -98,7 +98,7 @@ int main()
 				iocp.postAccept(events.pIoData);
 				continue;
 			}
-			CELLLog_Info("RECV...sockfd=%d, bytesTrans=%d", events.pIoData->sockfd, events.bytesTrans);
+			CELLLog_Info("hello iocp RECV...sockfd=%d, bytesTrans=%d", events.pIoData->sockfd, events.bytesTrans);
 			events.pIoData->length = events.bytesTrans;
 			iocp.postSend(events.pIoData);
 		}

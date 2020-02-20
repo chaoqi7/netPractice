@@ -89,6 +89,30 @@
     <ClInclude Include="..\depencies\includes\CELLSelectServer.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\depencies\includes\CELLEpoll.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\depencies\includes\CELLIOCP.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\depencies\includes\CELLEpollServer.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\depencies\includes\EasyEpollClient.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\depencies\includes\EasyEpollServer.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\depencies\includes\EasySelectClient.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\depencies\includes\EasyIOCPServer.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\depencies\includes\CELLIOCPServer.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="EasyTcpServer.bat">

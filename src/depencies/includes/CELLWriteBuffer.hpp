@@ -10,11 +10,53 @@ public:
 	~CELLWriteBuffer();
 	//写数据到指定 socket
 	int Write2Socket(SOCKET sockfd);
+
+//#ifdef _USE_IOCP_
+	IO_DATA_BASE* makeSendData(SOCKET sockfd)
+	{
+		if (_nLast > 0)
+		{
+			_ioData.wsabuf.buf = _pBuf;
+			_ioData.wsabuf.len = _nLast;
+			_ioData.sockfd = sockfd;
+			return &_ioData;
+		}
+		return nullptr;
+	}
+
+	bool send2iocp(int nSend)
+	{
+		if (nSend <= 0)
+		{
+			CELLLog_Error("CELLWriteBuffer send2iocp...");
+			return false;
+		}
+		//如果实际发送的数据小于真实发送的数据
+		else if (nSend < _nLast)
+		{
+			_nLast -= nSend;
+			memcpy(_pBuf, _pBuf + nSend, _nLast);
+		}
+		else if (nSend == _nLast)
+		{
+			//清空缓冲区
+			_nLast = 0;
+		}
+		else
+		{
+			CELLLog_Error("CELLWriteBuffer send2iocp..nSend > _nLast.");
+			return false;
+		}
+		return true;
+	}
+//#endif
 	//写入一条消息
 	int WriteData(netmsg_DataHeader* pHeader);
 	int WriteData(const char* pData, int nLen);
 	//
 	bool NeedWrite();
+protected:
+	IO_DATA_BASE _ioData = {};
 };
 
 CELLWriteBuffer::CELLWriteBuffer(int nSize)

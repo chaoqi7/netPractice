@@ -9,7 +9,7 @@
 #include "CELLClient.hpp"
 #include "CELLTask.hpp"
 #include "CELLThread.hpp"
-#include "CELLFDSet.hpp"
+#include "CELLTimeStamp.hpp"
 
 class CellServer
 {
@@ -40,6 +40,8 @@ private:
 protected:
 	//接收数据
 	int RecvData(CELLClient *pClient);
+
+	void OnNetRecv(CELLClient* pClient);
 	//有客户端退出
 	void OnClientLeave(CELLClient *pClient);
 	//
@@ -191,7 +193,7 @@ void CellServer::CheckTime()
 }
 inline void CellServer::OnClientLeave(CELLClient *pClient)
 {
-	CELLLog_Debug("CellServer::OnClientLeave fd=%d", pClient->getSocketfd());
+	CELLLog_Debug("CellServer::OnClientLeave fd=%d", pClient->socketfd());
 	_clientChange = true;
 	if (_pNetEvent)
 	{
@@ -213,12 +215,18 @@ int CellServer::RecvData(CELLClient *pClient)
 {
 	//读取消息
 	int nLen = pClient->ReadData();
+	if (nLen > 0)
+		OnNetRecv(pClient);
+	return nLen;
+}
+
+void CellServer::OnNetRecv(CELLClient* pClient)
+{
 	//统计接收消息次数
 	if (_pNetEvent)
 	{
 		_pNetEvent->OnNetRecv(pClient);
 	}
-	return nLen;
 }
 
 void CellServer::OnNetMsg(CELLClient *pClient, netmsg_DataHeader *pHeader)

@@ -16,7 +16,7 @@ public:
 	CELLClient(SOCKET cSock, int sendSize, int recvSize);
 	~CELLClient();
 	//获取当前客户端的 socket
-	SOCKET getSocketfd();
+	SOCKET socketfd();
 	//发送消息
 	int SendData(netmsg_DataHeader *pHeader);
 	int SendData(const char *pData, int nLen);
@@ -39,8 +39,53 @@ public:
 	//检测定时发送
 	bool CheckSend(long long dt);
 
-public:
 	void SetServerID(int serverID);
+
+//#ifdef _USE_IOCP_
+	IO_DATA_BASE* makeRecvData()
+	{
+		if (_bPostRead)
+		{
+			//CELLLog_Error("makeRecvData _bPostRead is true");
+			return nullptr;
+		}
+		_bPostRead = true;
+		return _recvBuf.makeRecvData(_cSock);
+	}
+
+	bool read4iocp(int nRead)
+	{
+		if (!_bPostRead)
+		{
+			CELLLog_Error("read4iocp _bPostRead is false");
+			return false;
+		}
+		_bPostRead = false;
+		return _recvBuf.read4iocp(nRead);
+	}
+
+	IO_DATA_BASE* makeSendData()
+	{
+		if (_bPostSend)
+		{
+			//CELLLog_Error("makeSendData _bPostSend is true");
+			return nullptr;
+		}
+		_bPostSend = true;
+		return _sendBuf.makeSendData(_cSock);
+	}
+
+	bool send2iocp(int nSend)
+	{
+		if (!_bPostSend)
+		{
+			CELLLog_Error("send2iocp _bPostSend is false");
+			return false;
+		}
+		_bPostSend = false;
+		return _sendBuf.send2iocp(nSend);
+	}
+//#endif
 
 private:
 	//重置发送计时
@@ -62,6 +107,11 @@ private:
 	int _id = -1;
 	int _serverID = -1;
 
+//#ifdef _USE_IOCP_
+	//预防多次提交
+	bool _bPostSend = false;
+	bool _bPostRead = false;
+//#endif
 public:
 	//用于调试的成员变量
 	//检查server端收到的消息ID是否连续
@@ -86,7 +136,7 @@ CELLClient::~CELLClient()
 	Close();
 }
 
-inline SOCKET CELLClient::getSocketfd()
+inline SOCKET CELLClient::socketfd()
 {
 	return _cSock;
 }

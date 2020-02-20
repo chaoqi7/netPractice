@@ -166,7 +166,10 @@
     <ClInclude Include="..\depencies\includes\CELLClient.hpp" />
     <ClInclude Include="..\depencies\includes\CELLConfig.hpp" />
     <ClInclude Include="..\depencies\includes\CELLEpoll.hpp" />
+    <ClInclude Include="..\depencies\includes\CELLEpollServer.hpp" />
     <ClInclude Include="..\depencies\includes\CELLFDSet.hpp" />
+    <ClInclude Include="..\depencies\includes\CELLIOCP.hpp" />
+    <ClInclude Include="..\depencies\includes\CELLIOCPServer.hpp" />
     <ClInclude Include="..\depencies\includes\CELLLog.hpp" />
     <ClInclude Include="..\depencies\includes\CELLNetWork.hpp" />
     <ClInclude Include="..\depencies\includes\CELLReadBuffer.hpp" />
@@ -180,6 +183,10 @@
     <ClInclude Include="..\depencies\includes\CELLTimeStamp.hpp" />
     <ClInclude Include="..\depencies\includes\CELLWriteBuffer.hpp" />
     <ClInclude Include="..\depencies\includes\CELLWriteStream.hpp" />
+    <ClInclude Include="..\depencies\includes\EasyEpollClient.hpp" />
+    <ClInclude Include="..\depencies\includes\EasyEpollServer.hpp" />
+    <ClInclude Include="..\depencies\includes\EasyIOCPServer.hpp" />
+    <ClInclude Include="..\depencies\includes\EasySelectClient.hpp" />
     <ClInclude Include="..\depencies\includes\EasySelectServer.hpp" />
     <ClInclude Include="..\depencies\includes\EasyTcpClient.hpp" />
     <ClInclude Include="..\depencies\includes\EasyTcpServer.hpp" />

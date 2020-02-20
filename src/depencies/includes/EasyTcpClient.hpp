@@ -54,7 +54,7 @@ inline SOCKET EasyTcpClient::InitSocket(int sendSize, int recvSize)
 {
 	if (IsRun())
 	{
-		CELLLog_Info("InitSocket Close old socket=%d.", (int)_pClient->getSocketfd());
+		CELLLog_Info("InitSocket Close old socket=%d.", (int)_pClient->socketfd());
 		Close();
 	}
 
@@ -93,11 +93,11 @@ inline int EasyTcpClient::Connect(const char *ip, unsigned short port)
 #else
 	_sin.sin_addr.s_addr = inet_addr(ip);
 #endif
-	int ret = connect(_pClient->getSocketfd(), (sockaddr *)&_sin, sizeof(sockaddr_in));
+	int ret = connect(_pClient->socketfd(), (sockaddr *)&_sin, sizeof(sockaddr_in));
 	if (SOCKET_ERROR == ret)
 	{
 		CELLLog_PError("<sockt=%d> connect <%s:%d> failed.",
-					   (int)_pClient->getSocketfd(), ip, port);
+					   (int)_pClient->socketfd(), ip, port);
 		return -1;
 	}
 	else
@@ -128,7 +128,7 @@ inline bool EasyTcpClient::OnRun(int microseconds)
 {
 	if (IsRun())
 	{
-		SOCKET cSock = _pClient->getSocketfd();
+		SOCKET cSock = _pClient->socketfd();
 
 		fd_set fdRead;
 		FD_ZERO(&fdRead);

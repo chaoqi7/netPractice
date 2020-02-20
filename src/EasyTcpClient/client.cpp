@@ -50,7 +50,7 @@ public:
 				if (login->msgID != _nRecvMsgID)
 				{
 					CELLLog_Error("OnNetMsg socket<%d> msgID<%d> _nRecvMsgID<%d> %d",
-								  (int)_pClient->getSocketfd(), login->msgID, _nRecvMsgID, login->msgID - _nRecvMsgID);
+								  (int)_pClient->socketfd(), login->msgID, _nRecvMsgID, login->msgID - _nRecvMsgID);
 				}
 				_nRecvMsgID++;
 			}
@@ -149,7 +149,7 @@ void workThread(CELLThread *pThread, int id)
 		CELLThread::Sleep(0);
 	}
 
-	CELLLog_Info("workThread thread<%d>, Connect<begin=%d, end=%d, nConnect=%d>",
+	CELLLog_Info("workThread thread<%d>, Connect<begin=%d, end=%d, g_nConnect=%d>",
 				 id, begin, end, (int)g_nConnect);
 
 	//所有连接完成
@@ -267,7 +267,7 @@ int main(int argc, char **argv)
 		auto t = tTime.getElapseTimeInSeconds();
 		if (t >= 1.0)
 		{
-			CELLLog_Info("thread<%d>, clients<%d>, connect<%d>, time<%lf>, send<%d>",
+			CELLLog_Info("thread<%d>, clients<%d>, g_nConnect<%d>, time<%lf>, send<%d>",
 						 nThread, nClient, (int)g_nConnect, t, (int)g_sendCount);
 			g_sendCount = 0;
 			tTime.update();

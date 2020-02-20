@@ -15,6 +15,39 @@ public:
 	void popFrontMsg();
 	//从指定 socket 读取数据
 	int read4socket(SOCKET sockfd);
+
+//#ifdef _USE_IOCP_
+	IO_DATA_BASE* makeRecvData(SOCKET sockfd)
+	{
+		int nLeft = _nCapacity - _nLast;
+		if (nLeft > 0)
+		{
+			_ioData.wsabuf.buf = _pBuf + _nLast;
+			_ioData.wsabuf.len = nLeft;
+			_ioData.sockfd = sockfd;
+			return &_ioData;
+		}
+		return nullptr;
+	}
+
+	bool read4iocp(int nRead)
+	{
+		int nLeft = _nCapacity - _nLast;
+
+		if (nRead > 0 && nLeft > 0)
+		{			
+			if (nLeft >= nRead)
+			{
+				_nLast += nRead;
+				return true;
+			}			
+		}
+		CELLLog_Error("CELLReadBuffer read4iocp error sock=%d, nLeft=%d, nRead=%d.", _ioData.sockfd, nLeft, nRead);
+		return false;
+	}
+//#
+protected:
+	IO_DATA_BASE _ioData = {};
 };
 
 CELLReadBuffer::CELLReadBuffer(int nSize)
