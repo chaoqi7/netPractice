@@ -118,14 +118,17 @@ inline void CellServer::DoMsg()
 	for (size_t n = 0; n < _clients.size(); n++)
 	{
 		pClient = _clients[n];
-		//是否有一个消息
-		/*
-		可以每次处理一条消息，或者一次处理完当前客户端的所有消息
-		*/
-		while (pClient->HasMsg())
+		if (pClient)
 		{
-			OnNetMsg(pClient, pClient->FrontMsg());
-			pClient->PopFrontMsg();
+			//是否有一个消息
+			/*
+			可以每次处理一条消息，或者一次处理完当前客户端的所有消息
+			*/
+			while (pClient->HasMsg())
+			{
+				OnNetMsg(pClient, pClient->FrontMsg());
+				pClient->PopFrontMsg();
+			}
 		}
 	}
 }
@@ -177,18 +180,36 @@ void CellServer::CheckTime()
 	auto dt = tNewTime - _oldTime;
 	_oldTime = tNewTime;
 
+	CELLClient* pClient = nullptr;
 	for (size_t n = 0; n < _clients.size(); n++)
 	{
-		//定时存活检测
-		if (_clients[n]->CheckHeart(dt))
+		pClient = _clients[n];
+		if (pClient)
 		{
-			OnClientLeave(_clients[n]);
-			_clients.erase(_clients.begin() + n);
-			continue;
-		}
+			//定时存活检测
+			if (pClient->CheckHeart(dt))
+			{
+#ifdef _USE_IOCP_
+				//如果投递了IO操作，则只是关闭 socket，上层处理删除客户端
+				if (pClient->isInIoAction())
+				{
+					pClient->Close();
+				}
+				else
+				{
+					OnClientLeave(pClient);
+				}
+#else
+				OnClientLeave(pClient);
+#endif
 
-		//定时发送检测
-		//_clients[n]->CheckSend(dt);
+				_clients.erase(_clients.begin() + n);
+				continue;
+				}
+
+			//定时发送检测
+			//pClient->CheckSend(dt);
+		}
 	}
 }
 inline void CellServer::OnClientLeave(CELLClient *pClient)
@@ -204,7 +225,6 @@ inline void CellServer::OnClientLeave(CELLClient *pClient)
 
 inline void CellServer::OnClientJoin(CELLClient *pClient)
 {
-	//
 	if (_pNetEvent)
 	{
 		_pNetEvent->OnNetJoin(pClient);

@@ -1,5 +1,10 @@
 ﻿#ifndef _CELL_CLIENT_HPP_
 #define _CELL_CLIENT_HPP_
+
+#ifdef _USE_IOCP_
+#include "CELLIOCP.hpp"
+#endif
+
 //心跳检测死亡倒计时时间
 #define CLIENT_HEART_DEATH_TIME 60 * 1000
 //定时把发送缓冲区数据发送到客户端时间(200毫秒是最小值)
@@ -41,53 +46,79 @@ public:
 
 	void SetServerID(int serverID);
 
-//#ifdef _USE_IOCP_
+#ifdef _USE_IOCP_
 	IO_DATA_BASE* makeRecvData()
 	{
-		if (_bPostRead)
+		if (isPostRead())
 		{
 			//CELLLog_Error("makeRecvData _bPostRead is true");
 			return nullptr;
 		}
-		_bPostRead = true;
-		return _recvBuf.makeRecvData(_cSock);
+		else
+		{
+			_bPostRead = true;
+			return _recvBuf.makeRecvData(_cSock);
+		}
 	}
 
 	bool read4iocp(int nRead)
 	{
-		if (!_bPostRead)
+		if (isPostRead())
+		{
+			_bPostRead = false;
+			return _recvBuf.read4iocp(nRead);
+		}
+		else
 		{
 			CELLLog_Error("read4iocp _bPostRead is false");
 			return false;
-		}
-		_bPostRead = false;
-		return _recvBuf.read4iocp(nRead);
+		}		
+	}
+
+	inline bool isPostRead()
+	{
+		return _bPostRead;
 	}
 
 	IO_DATA_BASE* makeSendData()
 	{
-		if (_bPostSend)
+		if (isPostSend())
 		{
 			//CELLLog_Error("makeSendData _bPostSend is true");
 			return nullptr;
 		}
-		_bPostSend = true;
-		return _sendBuf.makeSendData(_cSock);
+		else
+		{
+			_bPostSend = true;
+			return _sendBuf.makeSendData(_cSock);
+		}
 	}
 
 	bool send2iocp(int nSend)
 	{
-		if (!_bPostSend)
+		if (isPostSend())
+		{
+			_bPostSend = false;
+			return _sendBuf.send2iocp(nSend);
+		}
+		else
 		{
 			CELLLog_Error("send2iocp _bPostSend is false");
 			return false;
 		}
-		_bPostSend = false;
-		return _sendBuf.send2iocp(nSend);
 	}
-//#endif
+	
+	inline bool isPostSend()
+	{
+		return _bPostSend;
+	}
 
-private:
+	inline bool isInIoAction()
+	{
+		return _bPostRead || _bPostSend;
+	}
+#endif
+
 	//重置发送计时
 	void ResetDTSend();
 	//关闭当前客户端的 socket
@@ -107,11 +138,11 @@ private:
 	int _id = -1;
 	int _serverID = -1;
 
-//#ifdef _USE_IOCP_
+#ifdef _USE_IOCP_
 	//预防多次提交
 	bool _bPostSend = false;
 	bool _bPostRead = false;
-//#endif
+#endif
 public:
 	//用于调试的成员变量
 	//检查server端收到的消息ID是否连续

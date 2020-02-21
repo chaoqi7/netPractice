@@ -16,7 +16,7 @@ public:
 	//从指定 socket 读取数据
 	int read4socket(SOCKET sockfd);
 
-//#ifdef _USE_IOCP_
+#ifdef _USE_IOCP_
 	IO_DATA_BASE* makeRecvData(SOCKET sockfd)
 	{
 		int nLeft = _nCapacity - _nLast;
@@ -45,9 +45,9 @@ public:
 		CELLLog_Error("CELLReadBuffer read4iocp error sock=%d, nLeft=%d, nRead=%d.", _ioData.sockfd, nLeft, nRead);
 		return false;
 	}
-//#
-protected:
+private:
 	IO_DATA_BASE _ioData = {};
+#endif	
 };
 
 CELLReadBuffer::CELLReadBuffer(int nSize)

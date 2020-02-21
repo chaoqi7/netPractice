@@ -1,6 +1,6 @@
 ﻿
 #include "NetMsg.h"
-#include "EasySelectClient.hpp"
+#include "EasyIOCPClient.hpp"
 #include "CELLTimeStamp.hpp"
 #include "CELLConfig.hpp"
 
@@ -30,7 +30,7 @@ std::atomic<int> g_sendCount(0);
 std::atomic<int> g_readyCount(0);
 std::atomic<int> g_nConnect(0);
 
-class MyClient : public EasySelectClient
+class MyClient : public EasyIOCPClient
 {
 public:
 	MyClient()

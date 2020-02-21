@@ -1,14 +1,13 @@
 ﻿#ifndef _EASY_IOCP_SERVER_HPP_
 #define _EASY_IOCP_SERVER_HPP_
 
+//IOCP 专用宏
+#define _USE_IOCP_
+
 #include "EasyTcpServer.hpp"
 #include "CELLIOCP.hpp"
 #include "CELLIOCPServer.hpp"
 //#include "CELLSelectServer.hpp"
-
-//IOCP 专用宏
-#define _USE_IOCP_
-
 
 class EasyIOCPServer : public EasyTcpServer
 {

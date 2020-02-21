@@ -3,9 +3,9 @@
 
 #include "CELL.hpp"
 
-//#ifdef _USE_IOCP_
+#ifdef _USE_IOCP_
 #include "CELLIOCP.hpp"
-//#endif
+#endif
 
 class CELLBuffer
 {

@@ -11,7 +11,7 @@ public:
 	//写数据到指定 socket
 	int Write2Socket(SOCKET sockfd);
 
-//#ifdef _USE_IOCP_
+#ifdef _USE_IOCP_
 	IO_DATA_BASE* makeSendData(SOCKET sockfd)
 	{
 		if (_nLast > 0)
@@ -49,14 +49,16 @@ public:
 		}
 		return true;
 	}
-//#endif
+#endif
 	//写入一条消息
 	int WriteData(netmsg_DataHeader* pHeader);
 	int WriteData(const char* pData, int nLen);
 	//
 	bool NeedWrite();
 protected:
+#ifdef _USE_IOCP_
 	IO_DATA_BASE _ioData = {};
+#endif
 };
 
 CELLWriteBuffer::CELLWriteBuffer(int nSize)

@@ -161,6 +161,9 @@
     <ClCompile Include="client.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\depencies\includes\EasyEpollClient.hpp" />
+    <ClInclude Include="..\depencies\includes\EasyIOCPClient.hpp" />
+    <ClInclude Include="..\depencies\includes\EasySelectClient.hpp" />
     <ClInclude Include="..\depencies\includes\EasyTcpClient.hpp" />
   </ItemGroup>
   <ItemGroup>

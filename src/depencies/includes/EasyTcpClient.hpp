@@ -25,6 +25,15 @@ public:
 	//接收数据
 	int RecvData();
 
+	void DoMsg()
+	{
+		//是否有消息
+		while (_pClient->HasMsg())
+		{
+			OnNetMsg(_pClient->FrontMsg());
+			_pClient->PopFrontMsg();
+		}
+	}
 protected:
 	//循环执行任务
 	virtual bool OnRun(int microseconds) = 0;
@@ -124,67 +133,6 @@ inline bool EasyTcpClient::IsRun()
 	return _bConnect && _pClient;
 }
 
-inline bool EasyTcpClient::OnRun(int microseconds)
-{
-	if (IsRun())
-	{
-		SOCKET cSock = _pClient->socketfd();
-
-		fd_set fdRead;
-		FD_ZERO(&fdRead);
-		FD_SET(cSock, &fdRead);
-
-		fd_set fdWrite;
-		FD_ZERO(&fdWrite);
-
-		timeval t = {0, microseconds};
-		int ret = 0;
-		if (_pClient->NeedWrite())
-		{
-			FD_SET(cSock, &fdWrite);
-			ret = select((int)cSock + 1, &fdRead, &fdWrite, nullptr, &t);
-		}
-		else
-		{
-			ret = select((int)cSock + 1, &fdRead, nullptr, nullptr, &t);
-		}
-
-		if (ret == SOCKET_ERROR)
-		{
-			CELLLog_PError("EasyTcpClient::OnRun select.");
-			Close();
-			return false;
-		}
-		else if (ret == 0)
-		{
-			//CELLLog_Info("select time out.");
-			//continue;
-		}
-
-		if (FD_ISSET(cSock, &fdRead))
-		{
-			if (-1 == RecvData())
-			{
-				//CELLLog_PError("<sockt=%d> EasyTcpClient::OnRun RecvData.", (int)cSock);
-				Close();
-				return false;
-			}
-		}
-
-		if (FD_ISSET(cSock, &fdWrite))
-		{
-			if (-1 == _pClient->SendDataReal())
-			{
-				CELLLog_PError("<sockt=%d> EasyTcpClient::OnRun SendDataReal.", (int)cSock);
-				Close();
-				return false;
-			}
-		}
-		return true;
-	}
-	return false;
-}
-
 inline int EasyTcpClient::SendData(netmsg_DataHeader *pHeader)
 {
 	return SendData((const char *)pHeader, pHeader->dataLength);
@@ -206,12 +154,7 @@ inline int EasyTcpClient::RecvData()
 		int nLen = _pClient->ReadData();
 		if (nLen > 0)
 		{
-			//是否有消息
-			while (_pClient->HasMsg())
-			{
-				OnNetMsg(_pClient->FrontMsg());
-				_pClient->PopFrontMsg();
-			}
+			DoMsg();
 		}
 
 		return nLen;

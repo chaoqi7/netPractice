@@ -23,6 +23,15 @@
     <ClInclude Include="..\depencies\includes\EasyTcpClient.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\depencies\includes\EasyEpollClient.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\depencies\includes\EasyIOCPClient.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\depencies\includes\EasySelectClient.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="EasyTcpClient.bat">

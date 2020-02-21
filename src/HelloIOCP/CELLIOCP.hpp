@@ -175,7 +175,7 @@ public:
 			auto errCode = WSAGetLastError();
 			if (WSA_IO_PENDING != errCode)
 			{
-				CELLLog_PError("postRecv WSARecv");
+				CELLLog_PError("TEST CELLIOCP postRecv WSARecv");
 			}
 		}
 	}
@@ -201,7 +201,7 @@ public:
 			auto errCode = WSAGetLastError();
 			if (WSA_IO_PENDING != errCode)
 			{
-				CELLLog_PError("postRecv WSASend");
+				CELLLog_PError("TEST postRecv WSASend");
 			}
 		}
 	}

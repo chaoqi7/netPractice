@@ -5,7 +5,7 @@ set cmd="strIP=any"
 ::设置端口
 set cmd=%cmd% nPort=4567
 ::线程数
-set cmd=%cmd% nThread=1
+set cmd=%cmd% nThread=4
 ::能接收的最大客户端数量
 set cmd=%cmd% nMaxClient=10240
 ::客户端发送缓冲区大小（字节）

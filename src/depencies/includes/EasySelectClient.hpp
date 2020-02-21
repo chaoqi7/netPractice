@@ -8,24 +8,20 @@ class EasySelectClient : public EasyTcpClient
 {
 public:
 	//循环执行任务（当前使用select)
-	bool OnRun(int microseconds);
-
-private:
-	CELLFDSet _fdRead;
-	CELLFDSet _fdWrite;
-};
-
-inline bool EasySelectClient::OnRun(int microseconds)
-{
-	if (IsRun())
+	bool OnRun(int microseconds) override
 	{
+		if (!IsRun())
+		{
+			return false;
+		}
+
 		SOCKET cSock = _pClient->socketfd();
 		_fdRead.zero();
 		_fdRead.add(cSock);
 
 		_fdWrite.zero();
 
-		timeval t = {0, microseconds};
+		timeval t = { 0, microseconds };
 		int ret = 0;
 		if (_pClient->NeedWrite())
 		{
@@ -70,7 +66,10 @@ inline bool EasySelectClient::OnRun(int microseconds)
 		}
 		return true;
 	}
-	return false;
-}
+
+private:
+	CELLFDSet _fdRead;
+	CELLFDSet _fdWrite;
+};
 
 #endif //_EASY_SELECT_CLIENT_HPP_

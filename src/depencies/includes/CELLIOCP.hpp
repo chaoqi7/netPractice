@@ -165,7 +165,9 @@ public:
 				return 0;
 			}
 			//客户端主动断开连接
-			else if (ERROR_NETNAME_DELETED == errcode)
+			if (ERROR_NETNAME_DELETED == errcode ||
+				//本地断开连接
+				ERROR_CONNECTION_ABORTED == errcode)
 			{
 				return 1;
 			}
@@ -194,11 +196,12 @@ public:
 			auto errCode = WSAGetLastError();
 			if (WSA_IO_PENDING != errCode)
 			{
-				if (WSAECONNRESET == errCode)
+				if (WSAECONNRESET == errCode ||
+					WSAECONNABORTED == errCode)
 				{
 					return true;
 				}
-				CELLLog_PError("postRecv WSARecv");
+				CELLLog_PError("CELLIOCP postRecv WSARecv");
 				return false;
 			}
 		}
@@ -223,7 +226,8 @@ public:
 			auto errCode = WSAGetLastError();
 			if (WSA_IO_PENDING != errCode)
 			{
-				if (WSAECONNRESET == errCode)
+				if (WSAECONNRESET == errCode ||
+					WSAECONNABORTED == errCode)
 				{
 					return true;
 				}

@@ -43,28 +43,74 @@ public:
 		OnClientLeave(pClient);
 	}
 
+	bool postWrite(CELLClient* pClient)
+	{
+		if (!pClient)
+		{
+			return false;
+		}
+		if (!pClient->isPostSend())
+		{
+			auto pSendIoData = pClient->makeSendData();
+			if (pSendIoData)
+			{
+				if (!_iocp.postSend(pSendIoData))
+				{
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	bool postRead(CELLClient* pClient)
+	{
+		if (!pClient)
+		{
+			return false;
+		}
+		if (!pClient->isPostRead())
+		{
+			auto pRecvIoData = pClient->makeRecvData();
+			if (pRecvIoData)
+			{
+				if (!_iocp.postRecv(pRecvIoData))
+				{
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
 	//通过select 检测可写，可读。
 	bool DoNetEvents()
 	{
 		//检查需要可写数据到客户端
+		CELLClient* pClient = nullptr;
 		for (size_t n = 0; n < _clients.size(); n++)
 		{
-			if (_clients[n]->NeedWrite())
+			pClient = _clients[n];
+
+			if (pClient->NeedWrite())
 			{
-				auto pSendIoData = _clients[n]->makeSendData();
-				if (pSendIoData)
+				if (!postWrite(pClient))
 				{
-					if (!_iocp.postSend(pSendIoData))
-						rmClient(_clients[n]);
+					rmClient(pClient);
 				}
+				
+				if (!postRead(pClient))
+				{
+					rmClient(pClient);
+				}								
 			}
-			
-			auto pRecvIoData = _clients[n]->makeRecvData();
-			if (pRecvIoData)
+			else
 			{
-				if (_iocp.postRecv(pRecvIoData))
-					rmClient(_clients[n]);
-			}
+				if (!postRead(pClient))
+				{
+					rmClient(pClient);
+				}
+			}			
 		}
 
 		while (true)
@@ -105,10 +151,10 @@ public:
 			CELLClient* pClient = (CELLClient*)_ioEvent.data.ptr;
 			if (_ioEvent.bytesTrans <= 0)
 			{
-				CELLLog_PError("doIocpNetEvents RECV sockfd=%d, bytesTrans=%d",
+				CELLLog_Error("doIocpNetEvents RECV sockfd=%d, bytesTrans=%d",
 					_ioEvent.pIoData->sockfd, _ioEvent.bytesTrans);
 				rmClient(pClient);
-				return -1;
+				return ret;
 			}
 			//CELLLog_Info("doIocpNetEvents RECV...sockfd=%d, bytesTrans=%d", _ioEvent.pIoData->sockfd, _ioEvent.bytesTrans);			
 			if (pClient)
@@ -122,10 +168,10 @@ public:
  			CELLClient* pClient = (CELLClient*)_ioEvent.data.ptr;
  			if (_ioEvent.bytesTrans <= 0)
  			{
- 				CELLLog_PError("doIocpNetEvents SEND sockfd=%d, bytesTrans=%d",
+ 				CELLLog_Error("doIocpNetEvents SEND sockfd=%d, bytesTrans=%d",
  					_ioEvent.pIoData->sockfd, _ioEvent.bytesTrans);
  				rmClient(pClient);
- 				return -1;
+				return ret;
  			}
  			//CELLLog_Info("doIocpNetEvents SEND...sockfd=%d, bytesTrans=%d", _ioEvent.pIoData->sockfd, _ioEvent.bytesTrans);
  			if (pClient)
@@ -134,7 +180,7 @@ public:
  			}
  		}
 		else {
-			CELLLog_Error("doIocpNetEvents unknown action.");
+			CELLLog_Error("doIocpNetEvents unknown io type.");
 		}
 
 		return 1;
