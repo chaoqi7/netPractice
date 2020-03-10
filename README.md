@@ -12,8 +12,6 @@
 
 [C++多线程](cplusplus/多线程.md) ☑️
 
-[智能指针](cplusplus/智能指针.md)
-
 [内存管理](cplusplus/内存管理.md)
 
 
